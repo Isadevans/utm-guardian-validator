@@ -77,7 +77,7 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {((totalErrors / data.total_ads_checked) * 100).toFixed(1)}%
+            {data.total_ads_checked > 0 ? ((totalErrors / data.total_ads_checked) * 100).toFixed(1) : 0}%
           </div>
           <p className="text-xs text-muted-foreground">
             {totalErrors} of {data.total_ads_checked} ads
@@ -92,7 +92,7 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-sm font-bold">{validationDate.split(',')[1]}</div>
+          <div className="text-sm font-bold">{validationDate.split(',')[1]?.trim() || validationDate}</div>
           <p className="text-xs text-muted-foreground">
             {validationDate.split(',')[0]}
           </p>

@@ -6,46 +6,114 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { ValidationResults } from "@/components/ValidationResults";
 import { UtmDebugger } from "@/components/UtmDebugger";
 import { ValidationSummary } from "@/components/ValidationSummary";
 import { useToast } from "@/hooks/use-toast";
 
-interface AdValidationError {
-  id: string;
-  name: string;
-  error_type: 'MISSING_UTM_FIELD' | 'INCORRECT_UTM_FORMAT' | 'UTM_IN_LINK_URL';
-  details: string;
-  platform: string;
-  campaign_name?: string;
-  adset_name?: string;
-  found_utms?: string;
-  expected_utms?: string;
+export interface AdsConfigItem {
+  campaignName: string;
+  campaignId: string;
+  mediumName: string;
+  mediumId: string;
+  adName: string;
+  adId: string;
+  link: string;
+  trackParams: string;
+  isLinkWithoutUtms: boolean;
+  isTrackParamsValid: boolean;
 }
 
-interface ValidationResult {
-  facebook_errors: AdValidationError[];
-  google_errors: AdValidationError[];
-  tiktok_errors: AdValidationError[];
-  pinterest_errors: AdValidationError[];
+export interface AdsConfigsResult {
+  facebook: AdsConfigItem[];
+  google: AdsConfigItem[];
+  pinterest: AdsConfigItem[];
+  tiktok: AdsConfigItem[];
 }
 
-interface ValidationResponse {
+interface ProcessedValidationData {
   is_valid: boolean;
-  results: ValidationResult;
   total_ads_checked: number;
   validation_timestamp: string;
+  results: {
+    facebook_errors: any[];
+    google_errors: any[];
+    tiktok_errors: any[];
+    pinterest_errors: any[];
+  };
+  all_ads: AdsConfigItem[];
 }
 
 const Index = () => {
   const [dashboardId, setDashboardId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [validationData, setValidationData] = useState<ValidationResponse | null>(null);
+  const [validationData, setValidationData] = useState<ProcessedValidationData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const requiredUtmPattern = "utm_source=facebook&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium=cpc_{{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}} | nemu_213123213";
+
+  const processAdsConfigData = (data: AdsConfigsResult): ProcessedValidationData => {
+    const allAds = [...data.facebook, ...data.google, ...data.pinterest, ...data.tiktok];
+    
+    const createErrorFromAd = (ad: AdsConfigItem, platform: string) => {
+      let errorType = 'INCORRECT_UTM_FORMAT';
+      let details = `Invalid track params: ${ad.trackParams}`;
+      
+      if (!ad.trackParams || ad.trackParams.trim() === '') {
+        if (ad.isLinkWithoutUtms) {
+          errorType = 'MISSING_UTM_FIELD';
+          details = 'No UTM parameters found in track params field';
+        } else {
+          errorType = 'UTM_IN_LINK_URL';
+          details = `UTM parameters found in destination URL: ${ad.link}`;
+        }
+      }
+      
+      return {
+        id: ad.adId,
+        name: ad.adName,
+        error_type: errorType,
+        details,
+        platform,
+        campaign_name: ad.campaignName,
+        adset_name: ad.mediumName,
+        found_utms: ad.trackParams,
+        expected_utms: requiredUtmPattern.replace('facebook', platform.toLowerCase())
+      };
+    };
+
+    const facebookErrors = data.facebook
+      .filter(ad => !ad.isTrackParamsValid)
+      .map(ad => createErrorFromAd(ad, 'Facebook'));
+      
+    const googleErrors = data.google
+      .filter(ad => !ad.isTrackParamsValid)
+      .map(ad => createErrorFromAd(ad, 'Google'));
+      
+    const tiktokErrors = data.tiktok
+      .filter(ad => !ad.isTrackParamsValid)
+      .map(ad => createErrorFromAd(ad, 'TikTok'));
+      
+    const pinterestErrors = data.pinterest
+      .filter(ad => !ad.isTrackParamsValid)
+      .map(ad => createErrorFromAd(ad, 'Pinterest'));
+
+    const totalErrors = facebookErrors.length + googleErrors.length + tiktokErrors.length + pinterestErrors.length;
+
+    return {
+      is_valid: totalErrors === 0,
+      total_ads_checked: allAds.length,
+      validation_timestamp: new Date().toISOString(),
+      results: {
+        facebook_errors: facebookErrors,
+        google_errors: googleErrors,
+        tiktok_errors: tiktokErrors,
+        pinterest_errors: pinterestErrors
+      },
+      all_ads: allAds
+    };
+  };
 
   const handleValidation = async () => {
     if (!dashboardId.trim()) {
@@ -61,17 +129,30 @@ const Index = () => {
     setError(null);
     
     try {
-      // Mock API call - replace with actual gRPC call
-      const response = await mockValidateUtms(dashboardId);
-      setValidationData(response);
+      const response = await fetch(`http://localhost:3338/v2/dashboards/${dashboardId}/ads-configs`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDU1NywiZ3Vlc3QiOmZhbHNlLCJpYXQiOjE3NTEzNzgzNjUsImV4cCI6MTc1Mzk3MDM2NX0.Of1-vXRILrve-srN6yuszUwg5Etwitvxhy_XUsnA6DI',
+          'User-Agent': 'utm-validation-frontend',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const adsConfigData: AdsConfigsResult = await response.json();
+      const processedData = processAdsConfigData(adsConfigData);
+      setValidationData(processedData);
       
-      if (response.is_valid) {
+      if (processedData.is_valid) {
         toast({
           title: "Validation Complete",
           description: "All UTM configurations are valid!",
         });
       } else {
-        const totalErrors = Object.values(response.results).reduce((sum, errors) => sum + errors.length, 0);
+        const totalErrors = Object.values(processedData.results).reduce((sum, errors) => sum + errors.length, 0);
         toast({
           title: "Validation Issues Found",
           description: `Found ${totalErrors} UTM configuration issues`,
@@ -79,77 +160,16 @@ const Index = () => {
         });
       }
     } catch (err) {
-      setError("Failed to validate UTM configurations. Please try again.");
+      setError("Failed to validate UTM configurations. Please check your Dashboard ID and try again.");
       toast({
         title: "Validation Failed",
         description: "Unable to connect to validation service",
         variant: "destructive",
       });
+      console.error('Validation error:', err);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Mock function - replace with actual gRPC call
-  const mockValidateUtms = async (dashboardId: string): Promise<ValidationResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API delay
-    
-    return {
-      is_valid: false,
-      total_ads_checked: 127,
-      validation_timestamp: new Date().toISOString(),
-      results: {
-        facebook_errors: [
-          {
-            id: "23847738474",
-            name: "Summer Sale Campaign - Mobile",
-            error_type: "INCORRECT_UTM_FORMAT",
-            details: "utm_source=facebook&utm_campaign=summer_sale&utm_medium=cpc",
-            platform: "Facebook",
-            campaign_name: "Summer Sale 2024",
-            adset_name: "Mobile Users 18-35",
-            found_utms: "utm_source=facebook&utm_campaign=summer_sale&utm_medium=cpc",
-            expected_utms: requiredUtmPattern
-          },
-          {
-            id: "23847738475",
-            name: "Brand Awareness Video",
-            error_type: "MISSING_UTM_FIELD",
-            details: "No UTM parameters found in url_tags field",
-            platform: "Facebook",
-            campaign_name: "Brand Awareness Q4",
-            adset_name: "Video Viewers",
-            found_utms: "",
-            expected_utms: requiredUtmPattern
-          },
-          {
-            id: "23847738476",
-            name: "Product Launch Ad",
-            error_type: "UTM_IN_LINK_URL",
-            details: "UTM parameters found in destination URL instead of url_tags field",
-            platform: "Facebook",
-            campaign_name: "Product Launch",
-            adset_name: "Interested Shoppers",
-            found_utms: "https://example.com?utm_source=facebook&utm_campaign=launch",
-            expected_utms: requiredUtmPattern
-          }
-        ],
-        google_errors: [
-          {
-            id: "google_123",
-            name: "Search Campaign Ad",
-            error_type: "INCORRECT_UTM_FORMAT",
-            details: "Missing campaign ID in UTM format",
-            platform: "Google",
-            campaign_name: "Search Campaign",
-            found_utms: "utm_source=google&utm_campaign={{campaign.name}}&utm_medium=cpc",
-            expected_utms: requiredUtmPattern.replace('facebook', 'google')
-          }
-        ],
-        tiktok_errors: [],
-        pinterest_errors: []
-      }
-    };
   };
 
   return (
@@ -177,7 +197,7 @@ const Index = () => {
           <CardContent>
             <div className="flex gap-4">
               <Input
-                placeholder="Enter Dashboard ID (e.g., dashboard_123456)"
+                placeholder="Enter Dashboard ID (e.g., 4895)"
                 value={dashboardId}
                 onChange={(e) => setDashboardId(e.target.value)}
                 className="flex-1"
