@@ -51,7 +51,7 @@ const Index = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const requiredUtmPattern = "utm_source=facebook&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium=cpc_{{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}} | nemu_213123213";
+  const requiredUtmPattern = "utm_source=facebook&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium=cpc_{{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}} ";
 
   const processAdsConfigData = (data: AdsConfigsResult): ProcessedValidationData => {
     const allAds = [...data.facebook, ...data.google, ...data.pinterest, ...data.tiktok];
