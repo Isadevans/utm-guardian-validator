@@ -11,7 +11,6 @@ import { UtmDebugger } from "@/components/UtmDebugger";
 import { ValidationSummary } from "@/components/ValidationSummary";
 import { DashboardSelector, Dashboard } from "@/components/DashboardSelector";
 import { useToast } from "@/hooks/use-toast";
-import jwt from 'jsonwebtoken';
 
 export interface AdsConfigItem {
   campaignName: string;
@@ -60,7 +59,12 @@ const Index = () => {
 
   const requiredUtmPattern = "utm_source=facebook&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium=cpc_{{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}} | nemu_213123213";
 
-  const generateJWT = (accountId: string) => {
+  const generateJWT = async (accountId: string): Promise<string> => {
+    const header = {
+      alg: "HS256",
+      typ: "JWT"
+    };
+
     const payload = {
       id: parseInt(accountId),
       guest: false,
@@ -68,7 +72,33 @@ const Index = () => {
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 1 day from now
     };
 
-    return jwt.sign(payload, JWT_SECRET, { algorithm: 'HS256' });
+    // Base64URL encode function
+    const base64UrlEncode = (str: string): string => {
+      return btoa(str)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    };
+
+    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+    const data = `${encodedHeader}.${encodedPayload}`;
+
+    // Create HMAC-SHA256 signature using Web Crypto API
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(JWT_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+    const signatureArray = new Uint8Array(signature);
+    const signatureBase64 = base64UrlEncode(String.fromCharCode(...signatureArray));
+
+    return `${data}.${signatureBase64}`;
   };
 
   const fetchDashboards = async () => {
@@ -85,7 +115,7 @@ const Index = () => {
     setError(null);
     
     try {
-      const token = generateJWT(accountId);
+      const token = await generateJWT(accountId);
       const response = await fetch('https://backend.nemu.com.br/dashboards', {
         method: 'GET',
         headers: {
