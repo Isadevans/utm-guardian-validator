@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Search, AlertCircle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,28 @@ import { UtmDebugger } from "@/components/UtmDebugger";
 import { ValidationSummary } from "@/components/ValidationSummary";
 import { DashboardSelector, Dashboard } from "@/components/DashboardSelector";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+
+
+enum ValidationErrors {
+  MISSING_UTM_FIELD = 'MISSING_UTM_FIELD',
+  INCORRECT_UTM_FORMAT = 'INCORRECT_UTM_FORMAT',
+  CAMPAIGN_WITH_TRACKING_PARAMS = 'CAMPAIGN_WITH_TRACKING_PARAMS',
+  ADGROUP_WITH_TRACKING_PARAMS = 'ADGROUP_WITH_TRACKING_PARAMS',
+  UTM_IN_LINK_URL = 'UTM_IN_LINK_URL'
+}
+export interface AdValidationError {
+  id: string;
+  name: string;
+  error_type: ValidationErrors;
+  details: string;
+  platform: string;
+  campaign_name?: string;
+  adset_name?: string;
+  found_utms?: string;
+  expected_utms?: string;
+}
 
 export interface AdsConfigItem {
   campaignName: string;
@@ -23,6 +44,8 @@ export interface AdsConfigItem {
   trackParams: string;
   isLinkWithoutUtms: boolean;
   isTrackParamsValid: boolean;
+  messages: ValidationErrors[];
+  hasTrackingOnCampaignOrAdGroup?: boolean;
 }
 
 export interface AdsConfigsResult {
@@ -32,17 +55,9 @@ export interface AdsConfigsResult {
   tiktok: AdsConfigItem[];
 }
 
-interface ProcessedValidationData {
-  is_valid: boolean;
-  total_ads_checked: number;
-  validation_timestamp: string;
-  results: {
-    facebook_errors: any[];
-    google_errors: any[];
-    tiktok_errors: any[];
-    pinterest_errors: any[];
-  };
-  all_ads: AdsConfigItem[];
+interface BulkValidationResult extends AdsConfigsResult {
+  dashboardId: number;
+  dashboardName: string;
 }
 
 const Index = () => {
@@ -51,13 +66,13 @@ const Index = () => {
   const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(null);
   const [isLoadingDashboards, setIsLoadingDashboards] = useState(false);
   const [isLoadingValidation, setIsLoadingValidation] = useState(false);
-  const [validationData, setValidationData] = useState<ProcessedValidationData | null>(null);
+  const [validationData, setValidationData] = useState<AdsConfigsResult | null>(null);
+  const [allValidationData, setAllValidationData] = useState<BulkValidationResult[] | null>(null);
+  const [isBulkValidation, setIsBulkValidation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const JWT_SECRET = "vV~U!nIBCJ,-t>()7CRMhde;nVNKSHcZanuh,F:-W4GXIYL$$JuvkN/&'o.S$+w";
-
-  const requiredUtmPattern = "utm_source=facebook&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium=cpc_{{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}";
 
   const generateJWT = async (accountId: string): Promise<string> => {
     const header = {
@@ -75,9 +90,9 @@ const Index = () => {
     // Base64URL encode function
     const base64UrlEncode = (str: string): string => {
       return btoa(str)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
     };
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));
@@ -87,11 +102,11 @@ const Index = () => {
     // Create HMAC-SHA256 signature using Web Crypto API
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(JWT_SECRET),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
+        'raw',
+        encoder.encode(JWT_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
     );
 
     const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
@@ -170,12 +185,64 @@ const Index = () => {
   };
 
   const handleSelectAllDashboards = async () => {
-    // For now, we'll validate the first dashboard or show a message
-    if (dashboards.length > 0) {
-      toast({
-        title: "Validate All Dashboards",
-        description: "This feature will be implemented to validate all dashboards at once",
+    setIsLoadingValidation(true);
+    setIsBulkValidation(true);
+    setError(null);
+    setAllValidationData(null);
+    const token = await generateJWT(accountId);
+
+    toast({
+      title: "Bulk Validation Started",
+      description: `Validating all ${dashboards.length} dashboards...`,
+    });
+
+    try {
+      const validationPromises = dashboards.map(async (dashboard) => {
+        try {
+          const response = await fetch(`http://localhost:3338/v2/dashboards/${dashboard.id}/ads-configs`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP error for ${dashboard.name}: ${response.status}`);
+          }
+
+          // Transform the API response to match our BulkValidationResult type
+          const apiResponse = await response.json() as AdsConfigsResult;
+          const validationResult: BulkValidationResult = {
+            ...apiResponse,
+            dashboardId: dashboard.id,
+            dashboardName: dashboard.name
+          };
+
+          return validationResult;
+        } catch (error) {
+          console.error(`Failed to validate dashboard ${dashboard.name}:`, error);
+          throw error
+        }
       });
+
+      const results = await Promise.all(validationPromises);
+      setAllValidationData(results);
+
+      toast({
+        title: "Bulk Validation Complete",
+        description: `Finished validating all ${dashboards.length} dashboards.`,
+      });
+
+    } catch (err) {
+      setError("An unexpected error occurred during bulk validation.");
+      toast({
+        title: "Bulk Validation Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      console.error('Bulk validation error:', err);
+    } finally {
+      setIsLoadingValidation(false);
     }
   };
 
@@ -183,81 +250,33 @@ const Index = () => {
     setDashboards([]);
     setSelectedDashboard(null);
     setValidationData(null);
+    setAllValidationData(null);
+    setIsBulkValidation(false);
     setError(null);
   };
+// Add this function to determine if validation data is valid
+  const isValidationDataValid = (data: AdsConfigsResult | null): boolean => {
+    if (!data) return false;
 
-  const processAdsConfigData = (data: AdsConfigsResult): ProcessedValidationData => {
-    const allAds = [...data.facebook, ...data.google, ...data.pinterest, ...data.tiktok];
-    
-    const createErrorFromAd = (ad: AdsConfigItem, platform: string) => {
-      let errorType = 'INCORRECT_UTM_FORMAT';
-      let details = `Invalid track params: ${ad.trackParams}`;
-      
-      if (!ad.trackParams || ad.trackParams.trim() === '') {
-        if (ad.isLinkWithoutUtms) {
-          errorType = 'MISSING_UTM_FIELD';
-          details = 'No UTM parameters found in track params field';
-        } else {
-          errorType = 'UTM_IN_LINK_URL';
-          details = `UTM parameters found in destination URL: ${ad.link}`;
-        }
+    // Check each platform for any ads that have validation errors
+    return !['facebook', 'google', 'pinterest', 'tiktok'].some(platform => {
+      if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
+        const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
+        return platformItems.some(item => !item.isTrackParamsValid || item.messages?.length > 0);
       }
-      
-      return {
-        id: ad.adId,
-        name: ad.adName,
-        error_type: errorType,
-        details,
-        platform,
-        campaign_name: ad.campaignName,
-        adset_name: ad.mediumName,
-        found_utms: ad.trackParams,
-        expected_utms: requiredUtmPattern.replace('facebook', platform.toLowerCase())
-      };
-    };
-
-    const facebookErrors = data.facebook
-      .filter(ad => !ad.isTrackParamsValid)
-      .map(ad => createErrorFromAd(ad, 'Facebook'));
-      
-    const googleErrors = data.google
-      .filter(ad => !ad.isTrackParamsValid)
-      .map(ad => createErrorFromAd(ad, 'Google'));
-      
-    const tiktokErrors = data.tiktok
-      .filter(ad => !ad.isTrackParamsValid)
-      .map(ad => createErrorFromAd(ad, 'TikTok'));
-      
-    const pinterestErrors = data.pinterest
-      .filter(ad => !ad.isTrackParamsValid)
-      .map(ad => createErrorFromAd(ad, 'Pinterest'));
-
-    const totalErrors = facebookErrors.length + googleErrors.length + tiktokErrors.length + pinterestErrors.length;
-
-    return {
-      is_valid: totalErrors === 0,
-      total_ads_checked: allAds.length,
-      validation_timestamp: new Date().toISOString(),
-      results: {
-        facebook_errors: facebookErrors,
-        google_errors: googleErrors,
-        tiktok_errors: tiktokErrors,
-        pinterest_errors: pinterestErrors
-      },
-      all_ads: allAds
-    };
+      return false;
+    });
   };
-
   const validateDashboard = async (dashboardId: number) => {
     setIsLoadingValidation(true);
     setError(null);
-    
+    const token = await generateJWT(accountId);
+
     try {
       const response = await fetch(`http://localhost:3338/v2/dashboards/${dashboardId}/ads-configs`, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NDU1NywiZ3Vlc3QiOmZhbHNlLCJpYXQiOjE3NTEzNzgzNjUsImV4cCI6MTc1Mzk3MDM2NX0.Of1-vXRILrve-srN6yuszUwg5Etwitvxhy_XUsnA6DI',
-          'User-Agent': 'utm-validation-frontend',
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -266,17 +285,19 @@ const Index = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const adsConfigData: AdsConfigsResult = await response.json();
-      const processedData = processAdsConfigData(adsConfigData);
-      setValidationData(processedData);
-      
-      if (processedData.is_valid) {
+      // Transform the API response to match our AdsConfigsResult type
+      const apiResponse = await response.json();
+      const validationResult: AdsConfigsResult = apiResponse;
+
+      setValidationData(validationResult);
+
+      if (isValidationDataValid(validationResult)) {
         toast({
           title: "Validation Complete",
           description: `All UTM configurations are valid for dashboard ${selectedDashboard?.name}!`,
         });
       } else {
-        const totalErrors = Object.values(processedData.results).reduce((sum, errors) => sum + errors.length, 0);
+        const totalErrors = getTotalErrorCount(validationResult);
         toast({
           title: "Validation Issues Found",
           description: `Found ${totalErrors} UTM configuration issues in ${selectedDashboard?.name}`,
@@ -296,176 +317,267 @@ const Index = () => {
     }
   };
 
+  const getTotalErrorCount = (data: AdsConfigsResult): number => {
+    if (data) {
+      return Object.values(data).reduce((sum, errors) => sum + errors.length, 0);
+    }
+
+    // If results property isn't available, count errors from platform arrays
+    let errorCount = 0;
+    ['facebook', 'google', 'pinterest', 'tiktok'].forEach(platform => {
+      if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
+        const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
+        errorCount += platformItems.filter(item =>
+            !item.isTrackParamsValid || item.messages.length > 0
+        ).length;
+      }
+    });
+
+    return errorCount;
+  };
+  const extractValidationErrors = (data: AdsConfigsResult | null): AdValidationError[] => {
+    if (!data) return [];
+
+    let allErrors: AdValidationError[] = [];
+
+    ['facebook', 'google', 'pinterest', 'tiktok'].forEach(platform => {
+      if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
+        const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
+
+        // Filter items with validation issues and convert to AdValidationError format
+        const platformErrors = platformItems
+            .filter(item => !item.isTrackParamsValid || item.messages?.length > 0)
+            .map(item => ({
+              id: item.adId,
+              name: item.adName,
+              error_type: item.messages?.length > 0 ? item.messages[0] : ValidationErrors.INCORRECT_UTM_FORMAT,
+              details: item.trackParams || "Invalid UTM parameters",
+              platform: platform,
+              campaign_name: item.campaignName,
+              adset_name: item.mediumName,
+              found_utms: item.trackParams,
+              expected_utms: undefined // We don't have expected UTMs in the data structure
+            }));
+
+        allErrors = [...allErrors, ...platformErrors];
+      }
+    });
+
+    return allErrors;
+  };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900">UTM Validation Center</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Validate UTM configurations across all advertising platforms to ensure proper tracking and attribution
-          </p>
-        </div>
-
-        {/* Account Input Section */}
-        {dashboards.length === 0 && !selectedDashboard && (
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Account Login
-              </CardTitle>
-              <CardDescription>
-                Enter your Account ID to fetch your dashboards
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                <Input
-                  placeholder="Enter Account ID (e.g., 4557)"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  className="flex-1"
-                  disabled={isLoadingDashboards}
-                />
-                <Button
-                  onClick={fetchDashboards}
-                  disabled={isLoadingDashboards || !accountId.trim()}
-                  className="px-8"
-                >
-                  {isLoadingDashboards ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Fetch Dashboards
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Dashboard Selection */}
-        {dashboards.length > 0 && !selectedDashboard && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center max-w-7xl mx-auto">
-              <Button
-                onClick={resetToAccountInput}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Account Input
-              </Button>
-            </div>
-            <DashboardSelector
-              dashboards={dashboards}
-              onSelectDashboard={handleSelectDashboard}
-              onSelectAll={handleSelectAllDashboards}
-            />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold text-gray-900">UTM Validation Center</h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Validate UTM configurations across all advertising platforms to ensure proper tracking and attribution
+            </p>
           </div>
-        )}
 
-        {/* Current Dashboard Info */}
-        {selectedDashboard && (
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
+          {/* Account Input Section */}
+          {dashboards.length === 0 && !selectedDashboard && !isBulkValidation && (
+              <Card className="max-w-2xl mx-auto">
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    {isLoadingValidation ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    ) : (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    )}
-                    {isLoadingValidation ? 'Validating' : 'Dashboard'}: {selectedDashboard.name}
+                    <Search className="h-5 w-5" />
+                    Account Login
                   </CardTitle>
                   <CardDescription>
-                    Dashboard ID: {selectedDashboard.id} | Account: {selectedDashboard.accountId}
-                    {isLoadingValidation && " • Fetching UTM configurations..."}
+                    Enter your Account ID to fetch your dashboards
                   </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4">
+                    <Input
+                        placeholder="Enter Account ID (e.g., 4557)"
+                        value={accountId}
+                        onChange={(e) => setAccountId(e.target.value)}
+                        className="flex-1"
+                        disabled={isLoadingDashboards}
+                    />
+                    <Button
+                        onClick={fetchDashboards}
+                        disabled={isLoadingDashboards || !accountId.trim()}
+                        className="px-8"
+                    >
+                      {isLoadingDashboards ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading...
+                          </>
+                      ) : (
+                          <>
+                            <Search className="mr-2 h-4 w-4" />
+                            Fetch Dashboards
+                          </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+          )}
+
+          {/* Dashboard Selection */}
+          {dashboards.length > 0 && !selectedDashboard && !isBulkValidation && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center max-w-7xl mx-auto">
+                  <Button
+                      onClick={resetToAccountInput}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Account Input
+                  </Button>
                 </div>
-                <Button
-                  onClick={resetToAccountInput}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  disabled={isLoadingValidation}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Change Dashboard
-                </Button>
-              </div>
-            </CardHeader>
-          </Card>
-        )}
-
-        {/* Required UTM Pattern */}
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-700">Required UTM Pattern</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-gray-50 p-4 rounded-lg font-mono text-sm break-all">
-              {requiredUtmPattern}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Error Display */}
-        {error && (
-          <Alert variant="destructive" className="max-w-4xl mx-auto">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Results Section */}
-        {validationData && (
-          <div className="space-y-6">
-            <ValidationSummary data={validationData} />
-            
-            <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="errors">Error Details</TabsTrigger>
-                <TabsTrigger value="debugger">UTM Debugger</TabsTrigger>
-                <TabsTrigger value="platforms">By Platform</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview" className="space-y-4">
-                <ValidationResults data={validationData} />
-              </TabsContent>
-              
-              <TabsContent value="errors" className="space-y-4">
-                <ValidationResults data={validationData} showErrorsOnly />
-              </TabsContent>
-              
-              <TabsContent value="debugger" className="space-y-4">
-                <UtmDebugger 
-                  errors={[
-                    ...validationData.results.facebook_errors,
-                    ...validationData.results.google_errors,
-                    ...validationData.results.tiktok_errors,
-                    ...validationData.results.pinterest_errors
-                  ]}
-                  requiredPattern={requiredUtmPattern}
+                <DashboardSelector
+                    dashboards={dashboards}
+                    onSelectDashboard={handleSelectDashboard}
+                    onSelectAll={handleSelectAllDashboards}
                 />
-              </TabsContent>
-              
-              <TabsContent value="platforms" className="space-y-4">
-                <ValidationResults data={validationData} groupByPlatform />
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
+              </div>
+          )}
+
+          {/* Current Dashboard Info */}
+          {selectedDashboard && (
+              <Card className="max-w-4xl mx-auto">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {isLoadingValidation ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                        ) : (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                        )}
+                        {isLoadingValidation ? 'Validating' : 'Dashboard'}: {selectedDashboard.name}
+                      </CardTitle>
+                      <CardDescription>
+                        Dashboard ID: {selectedDashboard.id} | Account: {selectedDashboard.accountId}
+                        {isLoadingValidation && " • Fetching UTM configurations..."}
+                      </CardDescription>
+                    </div>
+                    <Button
+                        onClick={resetToAccountInput}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        disabled={isLoadingValidation}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Change Dashboard
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
+          )}
+          {error && (
+              <Alert variant="destructive" className="max-w-4xl mx-auto">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+          )}
+
+          {/* Single Dashboard Results Section */}
+          {validationData && !isBulkValidation && (
+              <div className="space-y-6">
+                <ValidationSummary data={validationData} />
+
+                <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="debugger">UTM Debugger</TabsTrigger>
+                    <TabsTrigger value="platforms">By Platform</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-4">
+                    <ValidationResults data={validationData} />
+                  </TabsContent>
+
+                  <TabsContent value="errors" className="space-y-4">
+                    <ValidationResults data={validationData} showErrorsOnly />
+                  </TabsContent>
+
+                  {/* UTM Debugger disabled for now */}
+                  <TabsContent value="debugger" className="space-y-4">
+                    {validationData&& (
+                        <UtmDebugger
+                            errors={
+                              extractValidationErrors(validationData)
+                            }
+                        />
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="platforms" className="space-y-4">
+                    <ValidationResults data={validationData} groupByPlatform />
+                  </TabsContent>
+                </Tabs>
+              </div>
+          )}
+
+          {/* Bulk Validation Results Section */}
+          {isBulkValidation && (
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Bulk Validation Report</CardTitle>
+                    <Button
+                        onClick={resetToAccountInput}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        disabled={isLoadingValidation}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                  </div>
+                  <CardDescription>
+                    Showing validation results for all {dashboards.length} dashboards.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingValidation && (
+                      <div className="flex items-center justify-center p-10">
+                        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+                        <p className="text-lg">Validating dashboards...</p>
+                      </div>
+                  )}
+                  {allValidationData && (
+                      <Accordion type="multiple" className="w-full space-y-4">
+                        {allValidationData.map((result, index) => {
+                          const errorCount = getTotalErrorCount(result);
+                          return (
+                              <AccordionItem value={`item-${index}`} key={result.dashboardId} className="border rounded-lg">
+                                <AccordionTrigger className="px-4 hover:no-underline">
+                                  <div className="flex items-center gap-4">
+                                    {errorCount === 0 ? (
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                    ) : (
+                                        <AlertCircle className="h-5 w-5 text-red-500" />
+                                    )}
+                                    <span className="font-semibold">{result.dashboardName}</span>
+                                    <Badge variant={errorCount === 0 ? "default" : "destructive"}>
+                                      {errorCount} {errorCount === 1 ? 'error' : 'errors'}
+                                    </Badge>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-4 border-t">
+                                  <ValidationResults data={result} showErrorsOnly />
+                                </AccordionContent>
+                              </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                  )}
+                </CardContent>
+              </Card>
+          )}
+        </div>
       </div>
-    </div>
   );
 };
 
