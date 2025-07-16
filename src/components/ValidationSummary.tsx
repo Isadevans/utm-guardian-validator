@@ -35,11 +35,11 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
       data.pinterest.length;
 
   // Calculate errors per platform based on isTrackParamsValid being false
-  const facebook_errors = data.facebook.filter(ad => !ad.isTrackParamsValid);
-  const google_errors = data.google.filter(ad => !ad.isTrackParamsValid);
-  const tiktok_errors = data.google.filter(ad => !ad.isTrackParamsValid);
-  const pinterest_errors = data.pinterest.filter(ad => !ad.isTrackParamsValid);
-
+// Calculate errors per platform based on messages array only
+  const facebook_errors = data.facebook.filter(ad => ad.messages && ad.messages.length > 0);
+  const google_errors = data.google.filter(ad => ad.messages && ad.messages.length > 0);
+  const tiktok_errors = data.tiktok.filter(ad => ad.messages && ad.messages.length > 0);
+  const pinterest_errors = data.pinterest.filter(ad => ad.messages && ad.messages.length > 0);
   // Calculate total errors
   const totalErrors = facebook_errors.length + google_errors.length + tiktok_errors.length + pinterest_errors.length;
 

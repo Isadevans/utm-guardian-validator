@@ -215,8 +215,6 @@ export const UtmDebugger = ({ errors, requiredPattern }: UtmDebuggerProps) => {
           <CardContent>
             <Tabs defaultValue={errors.some(e => e.found_utms && e.expected_utms) ? "comparisons" : "patterns"}>
               <TabsList>
-                <TabsTrigger value="tester">UTM Tester</TabsTrigger>
-                <TabsTrigger value="comparisons">Error Comparisons</TabsTrigger>
                 <TabsTrigger value="patterns">Error Patterns</TabsTrigger>
               </TabsList>
 
