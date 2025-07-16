@@ -1,4 +1,4 @@
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { Search, AlertCircle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +76,12 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   const [isBulkValidation, setIsBulkValidation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  useEffect(() => {
+    // If we have a token and account ID, fetch dashboards automatically on component mount
+    if (token && accountId) {
+      fetchDashboards();
+    }
+  }, []);
   const fetchDashboards = async () => {
     setIsLoadingDashboards(true);
     setError(null);
@@ -182,14 +188,23 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   };
 
   const resetToAccountInput = () => {
+    // Clear relevant localStorage items
+    localStorage.removeItem("utmValidationToken");
+    localStorage.removeItem("utmValidationAccountId");
+
+    // Reset state
     setDashboards([]);
     setSelectedDashboard(null);
     setValidationData(null);
     setAllValidationData(null);
     setIsBulkValidation(false);
     setError(null);
+
+    // Call onLogout if available to fully reset authentication
+    if (onLogout) {
+      onLogout()
+    };
   };
-// Add this function to determine if validation data is valid
   const isValidationDataValid = (data: AdsConfigsResult | null): boolean => {
     if (!data) return false;
 
@@ -307,10 +322,15 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
             <div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-full shadow-sm">
               <div className="h-2 w-2 bg-green-500 rounded-full"></div>
               <span className="text-sm text-gray-700">Logged in as Account {accountId}</span>
-              <Button variant="ghost" size="sm" onClick={onLogout}>
+              <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (onLogout) onLogout();
+                  }}
+              >
                 Logout
-              </Button>
-            </div>
+              </Button>            </div>
           </div>
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold text-gray-900">UTM Validation Center</h1>

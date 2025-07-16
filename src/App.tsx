@@ -34,10 +34,11 @@ const App = () => {
 
   // Function to handle logout
   const handleLogout = () => {
+    localStorage.removeItem("utmValidationToken");
     localStorage.removeItem("utmValidationAccountId");
+    setToken(null);
     setAccountId(null);
   };
-
   return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
