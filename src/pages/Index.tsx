@@ -59,9 +59,14 @@ interface BulkValidationResult extends AdsConfigsResult {
   dashboardId: number;
   dashboardName: string;
 }
+interface IndexProps {
+  onLogout?: () => void;
+  token: string;
+  accountId: string;
+}
 
-const Index = () => {
-  const [accountId, setAccountId] = useState("");
+const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
+  const [accountId, setAccountId] = useState(accountid);
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(null);
   const [isLoadingDashboards, setIsLoadingDashboards] = useState(false);
@@ -71,84 +76,16 @@ const Index = () => {
   const [isBulkValidation, setIsBulkValidation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const JWT_SECRET = "vV~U!nIBCJ,-t>()7CRMhde;nVNKSHcZanuh,F:-W4GXIYL$$JuvkN/&'o.S$+w";
-
-  const generateJWT = async (accountId: string): Promise<string> => {
-    const header = {
-      alg: "HS256",
-      typ: "JWT"
-    };
-
-    const payload = {
-      id: parseInt(accountId),
-      guest: false,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 1 day from now
-    };
-
-    // Base64URL encode function
-    const base64UrlEncode = (str: string): string => {
-      return btoa(str)
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=/g, '');
-    };
-
-    const encodedHeader = base64UrlEncode(JSON.stringify(header));
-    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-    const data = `${encodedHeader}.${encodedPayload}`;
-
-    // Create HMAC-SHA256 signature using Web Crypto API
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(JWT_SECRET),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-    );
-
-    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
-    const signatureArray = new Uint8Array(signature);
-    const signatureBase64 = base64UrlEncode(String.fromCharCode(...signatureArray));
-
-    return `${data}.${signatureBase64}`;
-  };
-
   const fetchDashboards = async () => {
-    if (!accountId.trim()) {
-      toast({
-        title: "Account ID Required",
-        description: "Please enter a valid Account ID",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoadingDashboards(true);
     setError(null);
 
     try {
-      const token = await generateJWT(accountId);
-      const response = await fetch('https://backend.nemu.com.br/dashboards', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/dashboards`, {
         method: 'GET',
         headers: {
-          'accept': 'application/json, text/plain, */*',
-          'accept-language': 'en-US,en;q=0.9',
-          'authorization': `Bearer ${token}`,
-          'cache-control': 'no-cache',
-          'origin': 'https://app.nemu.com.br',
-          'pragma': 'no-cache',
-          'priority': 'u=1, i',
-          'referer': 'https://app.nemu.com.br/',
-          'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
-          'sec-ch-ua-mobile': '?0',
-          'sec-ch-ua-platform': '"Windows"',
-          'sec-fetch-dest': 'empty',
-          'sec-fetch-mode': 'cors',
-          'sec-fetch-site': 'same-site',
-          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -164,7 +101,7 @@ const Index = () => {
         description: `Found ${dashboardsData.length} dashboard(s)`,
       });
     } catch (err) {
-      setError("Failed to fetch dashboards. Please check your Account ID and try again.");
+      setError("Failed to fetch dashboards. Please try again.");
       toast({
         title: "Failed to Load Dashboards",
         description: "Unable to connect to the dashboard service",
@@ -175,7 +112,6 @@ const Index = () => {
       setIsLoadingDashboards(false);
     }
   };
-
   const handleSelectDashboard = async (dashboardId: number) => {
     const dashboard = dashboards.find(d => d.id === dashboardId);
     if (!dashboard) return;
@@ -189,7 +125,6 @@ const Index = () => {
     setIsBulkValidation(true);
     setError(null);
     setAllValidationData(null);
-    const token = await generateJWT(accountId);
 
     toast({
       title: "Bulk Validation Started",
@@ -199,7 +134,7 @@ const Index = () => {
     try {
       const validationPromises = dashboards.map(async (dashboard) => {
         try {
-          const response = await fetch(`http://localhost:3338/v2/dashboards/${dashboard.id}/ads-configs`, {
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/v2/dashboards/${dashboard.id}/ads-configs`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -270,10 +205,9 @@ const Index = () => {
   const validateDashboard = async (dashboardId: number) => {
     setIsLoadingValidation(true);
     setError(null);
-    const token = await generateJWT(accountId);
 
     try {
-      const response = await fetch(`http://localhost:3338/v2/dashboards/${dashboardId}/ads-configs`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/v2/dashboards/${dashboardId}/ads-configs`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -369,6 +303,15 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
+          <div className="flex justify-end mb-4">
+            <div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-full shadow-sm">
+              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-gray-700">Logged in as Account {accountId}</span>
+              <Button variant="ghost" size="sm" onClick={onLogout}>
+                Logout
+              </Button>
+            </div>
+          </div>
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold text-gray-900">UTM Validation Center</h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
