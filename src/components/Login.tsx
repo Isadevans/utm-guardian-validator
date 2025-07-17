@@ -53,7 +53,7 @@ const Login = ({ onLogin }: LoginProps) => {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'User-Agent': 'UTM-Validation-Tool'
+                        'ngrok-skip-browser-warning': 'true'
                     }
                 }
             );
