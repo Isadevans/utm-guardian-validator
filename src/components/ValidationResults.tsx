@@ -130,7 +130,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                 )}
               </CardTitle>
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-               
+
                 {ad.adsetName && (
                     <div className="flex items-center gap-1">
                       <span className="font-medium">Ad Set:</span>
@@ -204,10 +204,23 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const validAds = campaignGroup.ads.filter(ad => ad.isValid).length;
 
-  const displayAds = showOnlyErrors
-      ? campaignGroup.ads.filter(ad => !ad.isValid)
-      : campaignGroup.ads;
+  const sortedAds = [...campaignGroup.ads].sort((a, b) => {
+    // Invalid ads before valid ones
+    if (a.isValid !== b.isValid) {
+      return a.isValid ? 1 : -1;
+    }
 
+    // For invalid ads, sort by number of errors (descending)
+    if (!a.isValid && !b.isValid) {
+      return b.errorTypes.length - a.errorTypes.length;
+    }
+
+    return 0; // Maintain original order for ads with same status and error count
+  });
+
+  const displayAds = showOnlyErrors
+      ? sortedAds.filter(ad => !ad.isValid)
+      : sortedAds;
   return (
       <Card className="mb-4">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -359,7 +372,14 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   const pinterestCampaigns = Array.isArray(data.pinterest) ? processAdsData(data.pinterest, 'Pinterest') : [];
 
   // Combine all campaign groups
-  const allCampaignGroups = [...facebookCampaigns, ...googleCampaigns, ...tiktokCampaigns, ...pinterestCampaigns];
+  const allCampaignGroups = [...facebookCampaigns, ...googleCampaigns, ...tiktokCampaigns, ...pinterestCampaigns].sort((a,b)=>{
+    if (a.errorCount !== b.errorCount) {
+      return b.errorCount - a.errorCount;
+    }
+
+    // If error count is the same, sort alphabetically
+    return a.campaignName.localeCompare(b.campaignName)
+  });
 
   // Calculate total ads and errors across all campaigns
   const totalAds = allCampaignGroups.reduce((sum, group) => sum + group.adCount, 0);
