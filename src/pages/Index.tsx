@@ -270,24 +270,21 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   };
 
   const getTotalErrorCount = (data: AdsConfigsResult): number => {
-    if (data) {
-      return Object.values(data).reduce((sum, errors) => sum + errors.length, 0);
-    }
+    if (!data) return 0;
 
-    // If results property isn't available, count errors from platform arrays
     let errorCount = 0;
     ['facebook', 'google', 'pinterest', 'tiktok'].forEach(platform => {
       if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
         const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
+        // Count ads that have errors, not individual errors
         errorCount += platformItems.filter(item =>
-            !item.isTrackParamsValid || item.messages.length > 0
+            !item.isTrackParamsValid || (item.messages && item.messages.length > 0)
         ).length;
       }
     });
 
     return errorCount;
-  };
-  const extractValidationErrors = (data: AdsConfigsResult | null): AdValidationError[] => {
+  };  const extractValidationErrors = (data: AdsConfigsResult | null): AdValidationError[] => {
     if (!data) return [];
 
     let allErrors: AdValidationError[] = [];

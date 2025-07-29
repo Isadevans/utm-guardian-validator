@@ -32,7 +32,7 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
       data.facebook.length +
       data.google.length +
       data.tiktok.length +
-      data.pinterest.length;
+      data.pinterest.length
 
   // Calculate errors per platform based on isTrackParamsValid being false
 // Calculate errors per platform based on messages array only

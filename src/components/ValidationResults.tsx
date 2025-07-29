@@ -2,8 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle } from "lucide-react";
+import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon } from "lucide-react";
 import { AdsConfigItem, AdsConfigsResult } from "@/pages/Index"; // Import the types from Index.tsx
+import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 enum ValidationErrors {
   MISSING_UTM_FIELD = 'MISSING_UTM_FIELD',
@@ -14,15 +17,40 @@ enum ValidationErrors {
 }
 
 interface AdValidationError {
-  id: string;
-  name: string;
-  error_type: ValidationErrors;
+  errorTypes: ValidationErrors[];
+  adId: string;
+  adName: string;
   details: string;
   platform: string;
-  campaign_name?: string;
-  adset_name?: string;
-  found_utms?: string;
-  expected_utms?: string;
+  campaignName: string;
+  campaignId: string;
+  adsetName?: string;
+  adsetId?: string;
+  trackParams?: string;
+  link?: string;
+}
+
+interface AdItem {
+  adId: string;
+  adName: string;
+  platform: string;
+  campaignName: string;
+  campaignId: string;
+  adsetName?: string;
+  adsetId?: string;
+  trackParams?: string;
+  link?: string;
+  errorTypes: ValidationErrors[];
+  isValid: boolean;
+}
+
+interface CampaignGroup {
+  campaignName: string;
+  campaignId: string;
+  platform: string;
+  ads: AdItem[];
+  errorCount: number;
+  adCount: number;
 }
 
 interface ValidationResultsProps {
@@ -35,35 +63,35 @@ const getErrorTypeInfo = (errorType: ValidationErrors) => {
   switch (errorType) {
     case ValidationErrors.MISSING_UTM_FIELD:
       return {
-        title: 'Missing UTM Field',
+        title: 'Missing UTM',
         description: 'The url_tags field is absent or empty',
         icon: <AlertCircle className="h-4 w-4" />,
         color: 'bg-yellow-100 border-yellow-300 text-yellow-800'
       };
     case ValidationErrors.INCORRECT_UTM_FORMAT:
       return {
-        title: 'Incorrect UTM Format',
+        title: 'Invalid Format',
         description: 'UTM parameters do not match required pattern',
         icon: <XCircle className="h-4 w-4" />,
         color: 'bg-red-100 border-red-300 text-red-800'
       };
     case ValidationErrors.UTM_IN_LINK_URL:
       return {
-        title: 'UTM in Link URL',
+        title: 'UTM in URL',
         description: 'UTM parameters found in destination URL (should be in url_tags)',
         icon: <ExternalLink className="h-4 w-4" />,
         color: 'bg-orange-100 border-orange-300 text-orange-800'
       };
     case ValidationErrors.CAMPAIGN_WITH_TRACKING_PARAMS:
       return {
-        title: 'Campaign Level UTMs',
+        title: 'Campaign UTMs',
         description: 'Tracking parameters found at campaign level (should be at ad level)',
         icon: <AlertTriangle className="h-4 w-4" />,
         color: 'bg-purple-100 border-purple-300 text-purple-800'
       };
     case ValidationErrors.ADGROUP_WITH_TRACKING_PARAMS:
       return {
-        title: 'Ad Group Level UTMs',
+        title: 'Ad Group UTMs',
         description: 'Tracking parameters found at ad group level (should be at ad level)',
         icon: <Info className="h-4 w-4" />,
         color: 'bg-blue-100 border-blue-300 text-blue-800'
@@ -78,117 +106,286 @@ const getErrorTypeInfo = (errorType: ValidationErrors) => {
   }
 };
 
-const ErrorCard = ({ error }: { error: AdValidationError }) => {
-  const errorInfo = getErrorTypeInfo(error.error_type);
+const AdCard = ({ ad }: { ad: AdItem }) => {
+
+  const borderColor = ad.isValid
+      ? "border-l-green-500"
+      : "border-l-red-500";
 
   return (
-      <Card className="border-l-4 border-l-red-500">
+      <Card className={`border-l-4 ${borderColor} mb-3`}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-sm font-medium">{error.name}</CardTitle>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>ID: {error.id}</span>
-                <span>•</span>
-                <span>{error.platform}</span>
-              </div>
-            </div>
-            <Badge className={errorInfo.color} variant="outline">
-              {errorInfo.icon}
-              <span className="ml-1">{errorInfo.title}</span>
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">{errorInfo.description}</p>
-
-          {error.campaign_name && (
-              <div className="text-xs">
-                <span className="font-medium">Campaign:</span> {error.campaign_name}
-                {error.adset_name && (
-                    <>
-                      <span className="mx-2">•</span>
-                      <span className="font-medium">Ad Set:</span> {error.adset_name}
-                    </>
+              <CardTitle className="text-sm font-medium flex items-center gap-1">
+                {ad.adName}
+                <Badge variant="outline" className="text-xs ml-1 font-mono bg-gray-100">
+                  {ad.adId}
+                </Badge>
+                {ad.isValid && (
+                    <Badge className="bg-green-100 text-green-800 ml-2">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Valid
+                    </Badge>
+                )}
+              </CardTitle>
+              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">Campaign:</span>
+                  <span>{ad.campaignName}</span>
+                  <Badge variant="outline" className="text-xs ml-1 font-mono bg-gray-50">
+                    {ad.campaignId}
+                  </Badge>
+                </div>
+                {ad.adsetName && (
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Ad Set:</span>
+                      <span>{ad.adsetName}</span>
+                      {ad.adsetId && (
+                          <Badge variant="outline" className="text-xs ml-1 font-mono bg-gray-50">
+                            {ad.adsetId}
+                          </Badge>
+                      )}
+                    </div>
                 )}
               </div>
-          )}
-
-          <Separator />
-
-          <div className="space-y-2">
-            <div className="text-xs">
-              <span className="font-medium text-red-600">Found:</span>
-              <pre className="mt-1 p-2 bg-red-50 rounded text-xs break-all whitespace-pre-wrap">
-              { error.details}
-            </pre>
             </div>
+            <div className="flex flex-wrap gap-1 justify-end">
+              {!ad.isValid && ad.errorTypes.map((errorType, index) => {
+                const info = getErrorTypeInfo(errorType);
+                return (
+                    <Badge key={index} className={info.color} variant="outline">
+                      {info.icon}
+                      <span className="ml-1">{info.title}</span>
+                    </Badge>
+                );
+              })}
+            </div>
+          </div>
+        </CardHeader>
+            <CardContent className="space-y-3">
+              <Separator />
 
-            {error.expected_utms && (
-                <div className="text-xs">
-                  <span className="font-medium text-green-600">Expected:</span>
-                  <pre className="mt-1 p-2 bg-green-50 rounded text-xs break-all whitespace-pre-wrap">
-                {error.expected_utms}
+              <div className="space-y-2">
+                <div className="text-xs space-y-1">
+                  <div className="flex items-center gap-1">
+                    <LinkIcon className="h-3 w-3" />
+                    <span className="font-medium">Destination URL:</span>
+                  </div>
+                  <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
+                {ad.link || "No URL provided"}
               </pre>
                 </div>
-            )}
-          </div>
-        </CardContent>
+
+                <div className="text-xs space-y-1">
+                  <span className="font-medium">UTM Parameters:</span>
+                  <pre className={`mt-1 p-2 ${!ad.isValid ? 'bg-red-50' : 'bg-green-50'} rounded text-xs break-all whitespace-pre-wrap`}>
+                {ad.trackParams || "No UTM parameters found"}
+              </pre>
+                </div>
+
+                {!ad.isValid && (
+                    <div className="text-xs space-y-1">
+                      <span className="font-medium text-red-600">Issues:</span>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {ad.errorTypes.map((errorType, index) => {
+                          const info = getErrorTypeInfo(errorType);
+                          return (
+                              <li key={index} className="text-muted-foreground">
+                                {info.description}
+                              </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                )}
+              </div>
+            </CardContent>
       </Card>
   );
 };
 
-const extractErrorsFromItems = (items: AdsConfigItem[], platform: string): AdValidationError[] => {
-  const errors: AdValidationError[] = [];
+const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showOnlyErrors, setShowOnlyErrors] = useState(false);
+  const validAds = campaignGroup.ads.filter(ad => ad.isValid).length;
 
-  items
-      .filter(item => !item.isTrackParamsValid || item.messages?.length > 0)
-      .forEach(item => {
-        // If there are specific messages, create an error for each message
-        if (item.messages && item.messages.length > 0) {
-          item.messages.forEach(errorType => {
-            errors.push({
-              id: item.adId,
-              name: item.adName,
-              error_type: errorType,
-              details: item.trackParams || "Invalid UTM parameters",
-              platform: platform,
-              campaign_name: item.campaignName,
-              adset_name: item.mediumName,
-              found_utms: item.trackParams,
-              expected_utms: undefined // We don't have expected UTMs in this data structure
-            });
-          });
-        }
-        // If no specific messages but isTrackParamsValid is false, create a generic error
-        else if (!item.isTrackParamsValid) {
-          errors.push({
-            id: item.adId,
-            name: item.adName,
-            error_type: ValidationErrors.INCORRECT_UTM_FORMAT,
-            details: item.trackParams || "Invalid UTM parameters",
-            platform: platform,
-            campaign_name: item.campaignName,
-            adset_name: item.mediumName,
-            found_utms: item.trackParams,
-            expected_utms: undefined
-          });
-        }
-      });
+  const displayAds = showOnlyErrors
+      ? campaignGroup.ads.filter(ad => !ad.isValid)
+      : campaignGroup.ads;
 
-  return errors;
+  return (
+      <Card className="mb-4">
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleTrigger className="w-full">
+            <CardHeader className="pb-3 cursor-pointer hover:bg-slate-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {isOpen ? <ChevronDown className="h-5 w-5 mr-2" /> : <ChevronRight className="h-5 w-5 mr-2" />}
+                  <div>
+                    <CardTitle className="text-md font-medium flex items-center">
+                      {campaignGroup.campaignName}
+                      <div className={`w-3 h-3 rounded-full ml-2 ${getPlatformColor(campaignGroup.platform)}`} />
+                    </CardTitle>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span>{campaignGroup.platform}</span>
+                      <span>•</span>
+                      <span className="font-medium">Campaign ID:</span>
+                      <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                        {campaignGroup.campaignId}
+                      </Badge>
+                      <span>•</span>
+                      <span>{campaignGroup.adCount} ads</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {campaignGroup.errorCount > 0 ? (
+                      <Badge variant="destructive">
+                        {campaignGroup.errorCount} {campaignGroup.errorCount === 1 ? 'error' : 'errors'}
+                      </Badge>
+                  ) : (
+                      <Badge className="bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        All Valid
+                      </Badge>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {isOpen && (
+                  <div className="mb-4 flex justify-between items-center">
+                    <div className="text-sm">
+                      {validAds} of {campaignGroup.adCount} ads valid ({Math.round((validAds/campaignGroup.adCount)*100)}%)
+                    </div>
+                    <div className="flex items-center">
+                      <label className="text-sm flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={showOnlyErrors}
+                            onChange={() => setShowOnlyErrors(!showOnlyErrors)}
+                            className="mr-2"
+                        />
+                        Show only errors
+                      </label>
+                    </div>
+                  </div>
+              )}
+              <div className="space-y-3">
+                {displayAds.map((ad) => (
+                    <AdCard key={ad.adId} ad={ad} />
+                ))}
+                {displayAds.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground">
+                      No ads with errors found in this campaign
+                    </div>
+                )}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+  );
 };
+
+const getPlatformColor = (platform: string): string => {
+  switch (platform.toLowerCase()) {
+    case 'facebook': return 'bg-blue-500';
+    case 'google': return 'bg-red-500';
+    case 'tiktok': return 'bg-gray-900';
+    case 'pinterest': return 'bg-red-600';
+    default: return 'bg-gray-500';
+  }
+};
+
+const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup[] => {
+  // First group items by campaign
+  const campaignMap: Record<string, {
+    campaignName: string,
+    campaignId: string,
+    ads: Record<string, AdItem>
+  }> = {};
+
+  // Process each ad to group by campaign
+  items.forEach(item => {
+    // Create campaign group if it doesn't exist
+    if (!campaignMap[item.campaignId]) {
+      campaignMap[item.campaignId] = {
+        campaignName: item.campaignName,
+        campaignId: item.campaignId,
+        ads: {}
+      };
+    }
+
+    // Create ad entry within the campaign group
+    if (!campaignMap[item.campaignId].ads[item.adId]) {
+      const isValid = item.isTrackParamsValid && (!item.messages || item.messages.length === 0);
+
+      campaignMap[item.campaignId].ads[item.adId] = {
+        adId: item.adId,
+        adName: item.adName,
+        platform: platform,
+        campaignName: item.campaignName,
+        campaignId: item.campaignId,
+        adsetName: item.mediumName,
+        adsetId: item.mediumId,
+        trackParams: item.trackParams,
+        link: item.link,
+        errorTypes: item.messages || [],
+        isValid: isValid
+      };
+    }
+  });
+
+  // Convert to array format and calculate counts
+  return Object.values(campaignMap).map(campaign => {
+    const ads = Object.values(campaign.ads);
+    const errorCount = ads.filter(ad => !ad.isValid).length;
+
+    return {
+      campaignName: campaign.campaignName,
+      campaignId: campaign.campaignId,
+      platform: platform,
+      ads: ads,
+      errorCount: errorCount,
+      adCount: ads.length
+    };
+  });
+};
+
 export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: ValidationResultsProps) => {
-  // Extract errors from platform arrays
-  const facebookErrors = Array.isArray(data.facebook) ? extractErrorsFromItems(data.facebook, 'facebook') : [];
-  const googleErrors = Array.isArray(data.google) ? extractErrorsFromItems(data.google, 'google') : [];
-  const tiktokErrors = Array.isArray(data.tiktok) ? extractErrorsFromItems(data.tiktok, 'tiktok') : [];
-  const pinterestErrors = Array.isArray(data.pinterest) ? extractErrorsFromItems(data.pinterest, 'pinterest') : [];
+  // Group ads by campaign for each platform
+  const facebookCampaigns = Array.isArray(data.facebook) ? processAdsData(data.facebook, 'Facebook') : [];
+  const googleCampaigns = Array.isArray(data.google) ? processAdsData(data.google, 'Google') : [];
+  const tiktokCampaigns = Array.isArray(data.tiktok) ? processAdsData(data.tiktok, 'TikTok') : [];
+  const pinterestCampaigns = Array.isArray(data.pinterest) ? processAdsData(data.pinterest, 'Pinterest') : [];
 
-  const allErrors = [...facebookErrors, ...googleErrors, ...tiktokErrors, ...pinterestErrors];
-  const isValid = allErrors.length === 0;
+  // Combine all campaign groups
+  const allCampaignGroups = [...facebookCampaigns, ...googleCampaigns, ...tiktokCampaigns, ...pinterestCampaigns];
 
-  if (showErrorsOnly && allErrors.length === 0) {
+  // Calculate total ads and errors across all campaigns
+  const totalAds = allCampaignGroups.reduce((sum, group) => sum + group.adCount, 0);
+  const totalErrors = allCampaignGroups.reduce((sum, group) => sum + group.errorCount, 0);
+  const isValid = totalErrors === 0;
+
+  // Platform data for summary
+  const platformData = [
+    { name: 'Facebook', campaigns: facebookCampaigns, isEmpty: data.facebook.length === 0 },
+    { name: 'Google', campaigns: googleCampaigns, isEmpty: data.google.length === 0 },
+    { name: 'TikTok', campaigns: tiktokCampaigns, isEmpty: data.tiktok.length === 0 },
+    { name: 'Pinterest', campaigns: pinterestCampaigns, isEmpty: data.pinterest.length === 0 }
+  ];
+
+  // Count platforms with no data
+  const emptyPlatforms = platformData.filter(p => p.isEmpty).length;
+  const hasSomeData = totalAds > 0;
+
+  // If showing errors only and there are none, display success message
+  if (showErrorsOnly && isValid && hasSomeData) {
     return (
         <Card>
           <CardContent className="flex items-center justify-center py-12">
@@ -202,73 +399,136 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
     );
   }
 
-  if (groupByPlatform) {
-    // Group errors by platform
-    const platforms = [
-      { name: 'Facebook', errors: facebookErrors, color: 'bg-blue-500' },
-      { name: 'Google', errors: googleErrors, color: 'bg-red-500' },
-      { name: 'TikTok', errors: tiktokErrors, color: 'bg-gray-900' },
-      { name: 'Pinterest', errors: pinterestErrors, color: 'bg-red-600' }
-    ];
-
+  // If no data at all
+  if (!hasSomeData) {
     return (
-        <div className="space-y-6">
-          {platforms.map((platform) => (
-              <Card key={platform.name}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${platform.color}`} />
-                    {platform.name}
-                    <Badge variant="outline">
-                      {platform.errors.length} {platform.errors.length === 1 ? 'error' : 'errors'}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {platform.errors.length > 0 ? (
-                      <div className="space-y-4">
-                        {platform.errors.map((error) => (
-                            <ErrorCard key={error.id} error={error} />
-                        ))}
-                      </div>
-                  ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                        No errors found for {platform.name}
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center space-y-2">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
+              <h3 className="text-lg font-medium">No Ads Available</h3>
+              <p className="text-muted-foreground">
+                {emptyPlatforms === platformData.length
+                    ? "No ads found across any platforms."
+                    : "Some platforms have no ads available for validation."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
     );
   }
 
+  // If grouping by platform, organize campaigns by their platform
+  if (groupByPlatform) {
+    return (
+        <Tabs defaultValue="summary">
+          <TabsList className="mb-4">
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            {platformData.filter(p => !p.isEmpty).map(platform => (
+                <TabsTrigger key={platform.name} value={platform.name.toLowerCase()}>
+                  {platform.name}
+                </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="summary">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              {platformData.map((platform) => (
+                  <Card key={platform.name}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${getPlatformColor(platform.name)}`} />
+                        {platform.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {platform.isEmpty ? (
+                          <div className="text-center py-4">
+                            <Badge variant="outline" className="bg-gray-100">No Data Available</Badge>
+                          </div>
+                      ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Ads:</span>
+                              <span className="font-medium">
+                          {platform.campaigns.reduce((sum, c) => sum + c.adCount, 0)}
+                        </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Campaigns:</span>
+                              <span className="font-medium">{platform.campaigns.length}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Errors:</span>
+                              <Badge variant={platform.campaigns.some(c => c.errorCount > 0) ? "destructive" : "outline"}>
+                                {platform.campaigns.reduce((sum, c) => sum + c.errorCount, 0)}
+                              </Badge>
+                            </div>
+                          </div>
+                      )}
+                    </CardContent>
+                  </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {platformData.filter(p => !p.isEmpty).map(platform => (
+              <TabsContent key={platform.name} value={platform.name.toLowerCase()}>
+                <div className="space-y-4">
+                  {platform.campaigns.length > 0 ? (
+                      platform.campaigns.map((campaign) => (
+                          <CampaignGroupCard key={`${platform.name}-${campaign.campaignId}`} campaignGroup={campaign} />
+                      ))
+                  ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        No data available for {platform.name}
+                      </div>
+                  )}
+                </div>
+              </TabsContent>
+          ))}
+        </Tabs>
+    );
+  }
+
+  // Default view: show all campaigns regardless of platform
   return (
       <div className="space-y-4">
         {isValid ? (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                All UTM configurations are valid! No issues found across all platforms.
+                All UTM configurations are valid! {totalAds} ads checked with no issues.
               </AlertDescription>
             </Alert>
         ) : (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Found {allErrors.length} UTM configuration {allErrors.length === 1 ? 'issue' : 'issues'} that need attention.
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Found {totalErrors} issues across {totalAds} ads ({Math.round((totalErrors/totalAds)*100)}% error rate)
               </AlertDescription>
             </Alert>
         )}
 
-        {allErrors.length > 0 && (
-            <div className="space-y-4">
-              {allErrors.map((error) => (
-                  <ErrorCard key={`${error.platform}-${error.id}`} error={error} />
-              ))}
-            </div>
+        {/* Empty platforms summary */}
+        {emptyPlatforms > 0 && (
+            <Alert className="border-gray-200 bg-gray-50">
+              <Info className="h-4 w-4 text-gray-600" />
+              <AlertDescription className="text-gray-800">
+                {emptyPlatforms === 1
+                    ? `One platform has no ads available.`
+                    : `${emptyPlatforms} platforms have no ads available.`}
+                {platformData.filter(p => p.isEmpty).map(p => p.name).join(', ')}
+              </AlertDescription>
+            </Alert>
         )}
+
+        <div className="space-y-4">
+          {allCampaignGroups.map((campaign) => (
+              <CampaignGroupCard key={`${campaign.platform}-${campaign.campaignId}`} campaignGroup={campaign} />
+          ))}
+        </div>
       </div>
   );
 };
