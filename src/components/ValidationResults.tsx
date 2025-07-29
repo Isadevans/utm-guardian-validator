@@ -130,13 +130,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                 )}
               </CardTitle>
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Campaign:</span>
-                  <span>{ad.campaignName}</span>
-                  <Badge variant="outline" className="text-xs ml-1 font-mono bg-gray-50">
-                    {ad.campaignId}
-                  </Badge>
-                </div>
+               
                 {ad.adsetName && (
                     <div className="flex items-center gap-1">
                       <span className="font-medium">Ad Set:</span>
@@ -502,14 +496,7 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
                 All UTM configurations are valid! {totalAds} ads checked with no issues.
               </AlertDescription>
             </Alert>
-        ) : (
-            <Alert className="border-amber-200 bg-amber-50">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800">
-                Found {totalErrors} issues across {totalAds} ads ({Math.round((totalErrors/totalAds)*100)}% error rate)
-              </AlertDescription>
-            </Alert>
-        )}
+        ) : null}
 
         {/* Empty platforms summary */}
         {emptyPlatforms > 0 && (
