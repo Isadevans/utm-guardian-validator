@@ -12,6 +12,8 @@ import { DashboardSelector, Dashboard } from "@/components/DashboardSelector";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { ExportButton } from "@/components/ExportButton"; // Add this at the top with other imports
+
 
 
 enum ValidationErrors {
@@ -529,6 +531,12 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="p-4 border-t">
+                                  <div className="flex justify-end mb-4">
+                                    <ExportButton
+                                        data={result}
+                                        dashboardName={result.dashboardName}
+                                    />
+                                  </div>
                                   <ValidationResults data={result} showErrorsOnly />
                                 </AccordionContent>
                               </AccordionItem>

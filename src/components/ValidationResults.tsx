@@ -4,6 +4,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon } from "lucide-react";
 import { AdsConfigItem, AdsConfigsResult } from "@/pages/Index"; // Import the types from Index.tsx
+import { ExportButton } from "./ExportButton"; // Add this at the top with other imports
+
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -509,6 +511,9 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   // Default view: show all campaigns regardless of platform
   return (
       <div className="space-y-4">
+        <div className="flex justify-end mb-2">
+          <ExportButton data={data} />
+        </div>
         {isValid ? (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
