@@ -11,7 +11,7 @@ interface ExportButtonProps {
 export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
     const handleExport = () => {
         // Prepare data for export
-        const exportRows: any[] = [];
+        const exportRows = [];
 
         // Process Facebook ads
         data.facebook.forEach(ad => {
