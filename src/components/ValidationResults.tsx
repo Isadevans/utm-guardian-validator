@@ -168,7 +168,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
             {/* Ad Preview Section */}
             <div className="text-xs space-y-1">
               <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
+                <ExternalLink className="h-3 w-3" />
                 <span className="font-medium">Ad Preview:</span>
               </div>
               {ad.preview_link ? (
@@ -179,8 +179,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
                     >
-                      <ExternalLink className="h-3 w-3" />
-                      View Ad Preview
+                      {ad.preview_link}
                     </a>
                   </div>
               ) : (
@@ -370,7 +369,8 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
         adsetName: item.mediumName,
         adsetId: item.mediumId,
         trackParams: item.trackParams,
-        link: item.preview_link,
+        preview_link: item.preview_link, // Use preview_link if available
+        link: item.link,
         errorTypes: item.messages || [],
         isValid: isValid
       };
