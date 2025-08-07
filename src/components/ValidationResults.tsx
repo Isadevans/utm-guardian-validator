@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon } from "lucide-react";
+import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye } from "lucide-react";
 import { AdsConfigItem, AdsConfigsResult } from "@/pages/Index"; // Import the types from Index.tsx
 import { ExportButton } from "./ExportButton"; // Add this at the top with other imports
 
@@ -42,6 +42,7 @@ interface AdItem {
   adsetId?: string;
   trackParams?: string;
   link?: string;
+  preview_link?: string; // Added preview_link property
   errorTypes: ValidationErrors[];
   isValid: boolean;
 }
@@ -159,44 +160,70 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
             </div>
           </div>
         </CardHeader>
-            <CardContent className="space-y-3">
-              <Separator />
+        <CardContent className="space-y-3">
+          <Separator />
 
-              <div className="space-y-2">
-                <div className="text-xs space-y-1">
-                  <div className="flex items-center gap-1">
-                    <LinkIcon className="h-3 w-3" />
-                    <span className="font-medium">Destination URL:</span>
+          <div className="space-y-2">
+
+            {/* Ad Preview Section */}
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-1">
+                <Eye className="h-3 w-3" />
+                <span className="font-medium">Ad Preview:</span>
+              </div>
+              {ad.preview_link ? (
+                  <div className="mt-1 p-2 bg-gray-50 rounded overflow-hidden">
+                    <a
+                        href={ad.preview_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View Ad Preview
+                    </a>
                   </div>
-                  <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
+              ) : (
+                  <div className="mt-1 p-2 bg-gray-50 rounded text-gray-500 italic text-xs">
+                    No ad preview available for this ad
+                  </div>
+              )}
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-1">
+                <LinkIcon className="h-3 w-3" />
+                <span className="font-medium">Destination URL:</span>
+              </div>
+              <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
                 {ad.link || "No URL provided"}
               </pre>
-                </div>
+            </div>
 
-                <div className="text-xs space-y-1">
-                  <span className="font-medium">UTM Parameters:</span>
-                  <pre className={`mt-1 p-2 ${!ad.isValid ? 'bg-red-50' : 'bg-green-50'} rounded text-xs break-all whitespace-pre-wrap`}>
+            </div>
+
+            <div className="text-xs space-y-1">
+              <span className="font-medium">UTM Parameters:</span>
+              <pre className={`mt-1 p-2 ${!ad.isValid ? 'bg-red-50' : 'bg-green-50'} rounded text-xs break-all whitespace-pre-wrap`}>
                 {ad.trackParams || "No UTM parameters found"}
               </pre>
-                </div>
+            </div>
 
-                {!ad.isValid && (
-                    <div className="text-xs space-y-1">
-                      <span className="font-medium text-red-600">Issues:</span>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {ad.errorTypes.map((errorType, index) => {
-                          const info = getErrorTypeInfo(errorType);
-                          return (
-                              <li key={index} className="text-muted-foreground">
-                                {info.description}
-                              </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                )}
-              </div>
-            </CardContent>
+            {!ad.isValid && (
+                <div className="text-xs space-y-1">
+                  <span className="font-medium text-red-600">Issues:</span>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {ad.errorTypes.map((errorType, index) => {
+                      const info = getErrorTypeInfo(errorType);
+                      return (
+                          <li key={index} className="text-muted-foreground">
+                            {info.description}
+                          </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+            )}
+          </div>
+        </CardContent>
       </Card>
   );
 };
@@ -343,7 +370,7 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
         adsetName: item.mediumName,
         adsetId: item.mediumId,
         trackParams: item.trackParams,
-        link: item.link,
+        link: item.preview_link,
         errorTypes: item.messages || [],
         isValid: isValid
       };

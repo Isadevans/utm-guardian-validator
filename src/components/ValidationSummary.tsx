@@ -14,6 +14,7 @@ export interface AdsConfigItem {
   isLinkWithoutUtms: boolean;
   isTrackParamsValid: boolean;
   messages: string[];
+  preview_link: string;
   hasTrackingOnCampaignOrAdGroup?: boolean;
 }
 
