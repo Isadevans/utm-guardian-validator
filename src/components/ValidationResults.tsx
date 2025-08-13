@@ -3,12 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye } from "lucide-react";
-import { AdsConfigItem, AdsConfigsResult } from "@/pages/Index"; // Import the types from Index.tsx
 import { ExportButton } from "./ExportButton"; // Add this at the top with other imports
 
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {AdsConfigItem, AdsConfigsResult} from "@/types/AdsConfigItem.ts";
 
 enum ValidationErrors {
   MISSING_UTM_FIELD = 'MISSING_UTM_FIELD',
@@ -18,19 +18,6 @@ enum ValidationErrors {
   UTM_IN_LINK_URL = 'UTM_IN_LINK_URL'
 }
 
-interface AdValidationError {
-  errorTypes: ValidationErrors[];
-  adId: string;
-  adName: string;
-  details: string;
-  platform: string;
-  campaignName: string;
-  campaignId: string;
-  adsetName?: string;
-  adsetId?: string;
-  trackParams?: string;
-  link?: string;
-}
 
 interface AdItem {
   adId: string;
@@ -348,30 +335,30 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
   // Process each ad to group by campaign
   items.forEach(item => {
     // Create campaign group if it doesn't exist
-    if (!campaignMap[item.campaignId]) {
-      campaignMap[item.campaignId] = {
-        campaignName: item.campaignName,
-        campaignId: item.campaignId,
+    if (!campaignMap[item.campaign.id]) {
+      campaignMap[item.campaign.id] = {
+        campaignName: item.campaign.name,
+        campaignId: item.campaign.id,
         ads: {}
       };
     }
 
     // Create ad entry within the campaign group
-    if (!campaignMap[item.campaignId].ads[item.adId]) {
+    if (!campaignMap[item.campaign.id].ads[item.ad.id]) {
       const isValid = item.isTrackParamsValid && (!item.messages || item.messages.length === 0);
 
-      campaignMap[item.campaignId].ads[item.adId] = {
-        adId: item.adId,
-        adName: item.adName,
+      campaignMap[item.campaign.id].ads[item.ad.id] = {
+        adId: item.ad.id,
+        adName: item.ad.name,
         platform: platform,
-        campaignName: item.campaignName,
-        campaignId: item.campaignId,
-        adsetName: item.mediumName,
-        adsetId: item.mediumId,
-        trackParams: item.trackParams,
-        preview_link: item.preview_link, // Use preview_link if available
-        link: item.link,
-        errorTypes: item.messages || [],
+        campaignName: item.campaign.name,
+        campaignId: item.campaign.id,
+        adsetName: item.medium.name,
+        adsetId: item.medium.id,
+        trackParams: item.trackParams || item.account?.trackParams,
+        preview_link: item.preview_link,
+        link: item.link ,
+        errorTypes: item.messages as ValidationErrors[] || [],
         isValid: isValid
       };
     }
@@ -392,7 +379,6 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
     };
   });
 };
-
 export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: ValidationResultsProps) => {
   // Group ads by campaign for each platform
   const facebookCampaigns = Array.isArray(data.facebook) ? processAdsData(data.facebook, 'Facebook') : [];

@@ -1,19 +1,19 @@
 import {useEffect, useState} from "react";
-import { Search, AlertCircle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ValidationResults } from "@/components/ValidationResults";
-import { UtmDebugger } from "@/components/UtmDebugger";
-import { ValidationSummary } from "@/components/ValidationSummary";
-import { DashboardSelector, Dashboard } from "@/components/DashboardSelector";
-import { useToast } from "@/hooks/use-toast";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { ExportButton } from "@/components/ExportButton"; // Add this at the top with other imports
-
+import {AlertCircle, ArrowLeft, CheckCircle, Loader2, Search} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import {Alert, AlertDescription} from "@/components/ui/alert";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import {ValidationResults} from "@/components/ValidationResults";
+import {UtmDebugger} from "@/components/UtmDebugger";
+import {ValidationSummary} from "@/components/ValidationSummary";
+import {Dashboard, DashboardSelector} from "@/components/DashboardSelector";
+import {useToast} from "@/hooks/use-toast";
+import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
+import {Badge} from "@/components/ui/badge";
+import {ExportButton} from "@/components/ExportButton";
+import {AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts"; // Add this at the top with other imports
 
 
 enum ValidationErrors {
@@ -35,30 +35,8 @@ export interface AdValidationError {
   expected_utms?: string;
 }
 
-export interface AdsConfigItem {
-  campaignName: string;
-  campaignId: string;
-  mediumName: string;
-  mediumId: string;
-  adName: string;
-  adId: string;
-  link: string;
-  trackParams: string;
-  isLinkWithoutUtms: boolean;
-  isTrackParamsValid: boolean;
-  messages: ValidationErrors[];
-  preview_link: string;
-  hasTrackingOnCampaignOrAdGroup?: boolean;
-}
 
-export interface AdsConfigsResult {
-  facebook: AdsConfigItem[];
-  google: AdsConfigItem[];
-  pinterest: AdsConfigItem[];
-  tiktok: AdsConfigItem[];
-}
-
-interface BulkValidationResult extends AdsConfigsResult {
+interface BulkValidationResult extends ValidationSummaryProps{
   dashboardId: number;
   dashboardName: string;
 }
@@ -74,7 +52,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(null);
   const [isLoadingDashboards, setIsLoadingDashboards] = useState(false);
   const [isLoadingValidation, setIsLoadingValidation] = useState(false);
-  const [validationData, setValidationData] = useState<AdsConfigsResult | null>(null);
+  const [validationData, setValidationData] = useState<ValidationSummaryProps | null>(null);
   const [allValidationData, setAllValidationData] = useState<BulkValidationResult[] | null>(null);
   const [isBulkValidation, setIsBulkValidation] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +135,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
           }
 
           // Transform the API response to match our BulkValidationResult type
-          const apiResponse = await response.json() as AdsConfigsResult;
+          const apiResponse = await response.json() as ValidationSummaryProps;
           const validationResult: BulkValidationResult = {
             ...apiResponse,
             dashboardId: dashboard.id,
@@ -212,11 +190,11 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   };
   const isValidationDataValid = (data: AdsConfigsResult | null): boolean => {
     if (!data) return false;
+    const platforms: (keyof AdsConfigsResult)[] = ['facebook', 'google', 'pinterest', 'tiktok'];
 
-    // Check each platform for any ads that have validation errors
-    return !['facebook', 'google', 'pinterest', 'tiktok'].some(platform => {
-      if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
-        const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
+    return !platforms.some(platform => {
+      const platformItems = data[platform];
+      if (Array.isArray(platformItems)) {
         return platformItems.some(item => !item.isTrackParamsValid || item.messages?.length > 0);
       }
       return false;
@@ -240,11 +218,10 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Transform the API response to match our AdsConfigsResult type
-      const apiResponse = await response.json();
-      const validationResult: AdsConfigsResult = apiResponse;
+      // Transform the API response to match our ValidationSummaryProps type
+      const validationResult: AdsConfigsResult = await response.json();
 
-      setValidationData(validationResult);
+      setValidationData({data:validationResult});
 
       if (isValidationDataValid(validationResult)) {
         toast({
@@ -274,47 +251,43 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
 
   const getTotalErrorCount = (data: AdsConfigsResult): number => {
     if (!data) return 0;
-
     let errorCount = 0;
-    ['facebook', 'google', 'pinterest', 'tiktok'].forEach(platform => {
-      if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
-        const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
-        // Count ads that have errors, not individual errors
+    const platforms: (keyof AdsConfigsResult)[] = ['facebook', 'google', 'pinterest', 'tiktok'];
+
+    platforms.forEach(platform => {
+      const platformItems = data[platform];
+      if (Array.isArray(platformItems)) {
         errorCount += platformItems.filter(item =>
             !item.isTrackParamsValid || (item.messages && item.messages.length > 0)
         ).length;
       }
     });
-
     return errorCount;
-  };  const extractValidationErrors = (data: AdsConfigsResult | null): AdValidationError[] => {
+  };
+  const extractValidationErrors = (data: AdsConfigsResult | null): AdValidationError[] => {
     if (!data) return [];
-
     let allErrors: AdValidationError[] = [];
+    const platforms: (keyof AdsConfigsResult)[] = ['facebook', 'google', 'pinterest', 'tiktok'];
 
-    ['facebook', 'google', 'pinterest', 'tiktok'].forEach(platform => {
-      if (Array.isArray(data[platform as keyof AdsConfigsResult])) {
-        const platformItems = data[platform as keyof AdsConfigsResult] as AdsConfigItem[];
-
-        // Filter items with validation issues and convert to AdValidationError format
+    platforms.forEach(platform => {
+      const platformItems = data[platform];
+      if (Array.isArray(platformItems)) {
         const platformErrors = platformItems
             .filter(item => !item.isTrackParamsValid || item.messages?.length > 0)
-            .map(item => ({
-              id: item.adId,
-              name: item.adName,
-              error_type: item.messages?.length > 0 ? item.messages[0] : ValidationErrors.INCORRECT_UTM_FORMAT,
-              details: item.trackParams || "Invalid UTM parameters",
+            .map((item): AdValidationError => ({
+              id: item.ad.id,
+              name: item.ad.name,
+              error_type: item.messages?.length > 0 ? item.messages[0] as ValidationErrors : ValidationErrors.INCORRECT_UTM_FORMAT,
+              details: `Invalid UTM parameters found at the Ad level.`,
               platform: platform,
-              campaign_name: item.campaignName,
-              adset_name: item.mediumName,
-              found_utms: item.trackParams,
-              expected_utms: undefined // We don't have expected UTMs in the data structure
+              campaign_name: item.campaign.name,
+              adset_name: item.medium.name,
+              found_utms: item.ad.trackParams,
+              expected_utms: "Expected format not available in this context."
             }));
-
         allErrors = [...allErrors, ...platformErrors];
       }
     });
-
     return allErrors;
   };
   return (
@@ -449,7 +422,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
           {/* Single Dashboard Results Section */}
           {validationData && !isBulkValidation && (
               <div className="space-y-6">
-                <ValidationSummary data={validationData} />
+                <ValidationSummary data={validationData.data} />
 
                 <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
                   <TabsList className="grid w-full grid-cols-3">
@@ -459,11 +432,11 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   </TabsList>
 
                   <TabsContent value="overview" className="space-y-4">
-                    <ValidationResults data={validationData} />
+                    <ValidationResults data={validationData.data} />
                   </TabsContent>
 
                   <TabsContent value="errors" className="space-y-4">
-                    <ValidationResults data={validationData} showErrorsOnly />
+                    <ValidationResults data={validationData.data} showErrorsOnly />
                   </TabsContent>
 
                   {/* UTM Debugger disabled for now */}
@@ -471,14 +444,14 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                     {validationData&& (
                         <UtmDebugger
                             errors={
-                              extractValidationErrors(validationData)
+                              extractValidationErrors(validationData.data)
                             }
                         />
                     )}
                   </TabsContent>
 
                   <TabsContent value="platforms" className="space-y-4">
-                    <ValidationResults data={validationData} groupByPlatform />
+                    <ValidationResults data={validationData.data} groupByPlatform />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -515,7 +488,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   {allValidationData && (
                       <Accordion type="multiple" className="w-full space-y-4">
                         {allValidationData.map((result, index) => {
-                          const errorCount = getTotalErrorCount(result);
+                          const errorCount = getTotalErrorCount(result.data);
                           return (
                               <AccordionItem value={`item-${index}`} key={result.dashboardId} className="border rounded-lg">
                                 <AccordionTrigger className="px-4 hover:no-underline">
@@ -534,11 +507,11 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                                 <AccordionContent className="p-4 border-t">
                                   <div className="flex justify-end mb-4">
                                     <ExportButton
-                                        data={result}
+                                        data={result.data}
                                         dashboardName={result.dashboardName}
                                     />
                                   </div>
-                                  <ValidationResults data={result} showErrorsOnly />
+                                  <ValidationResults data={result.data} showErrorsOnly />
                                 </AccordionContent>
                               </AccordionItem>
                           );

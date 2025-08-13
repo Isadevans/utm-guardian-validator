@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import * as XLSX from 'xlsx';
-import { AdsConfigsResult } from "@/pages/Index";
+import {AdsConfigsResult} from "@/types/AdsConfigItem.ts";
 
 interface ExportButtonProps {
     data: AdsConfigsResult;
@@ -18,14 +18,14 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
                     Platform: 'Facebook',
-                    'Campaign Name': ad.campaignName,
-                    'Campaign ID': ad.campaignId,
-                    'Ad Set Name': ad.mediumName,
-                    'Ad Set ID': ad.mediumId,
-                    'Ad Name': ad.adName,
-                    'Ad ID': ad.adId,
+                    'Campaign Name': ad.campaign.name,
+                    'Campaign ID': ad.campaign.id,
+                    'Ad Set Name': ad.medium.name,
+                    'Ad Set ID': ad.medium.id,
+                    'Ad Name': ad.ad.name,
+                    'Ad ID': ad.ad.id,
                     'Destination URL': ad.link,
-                    'UTM Parameters': ad.trackParams,
+                    'UTM Parameters': ad.account?.trackParams,
                     'Status': 'Invalid',
                 });
             }
@@ -36,14 +36,14 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
                     Platform: 'Google',
-                    'Campaign Name': ad.campaignName,
-                    'Campaign ID': ad.campaignId,
-                    'Ad Set Name': ad.mediumName, // Using Ad Set naming consistently
-                    'Ad Set ID': ad.mediumId,
-                    'Ad Name': ad.adName,
-                    'Ad ID': ad.adId,
+                    'Campaign Name': ad.campaign.name,
+                    'Campaign ID': ad.campaign.id,
+                    'Ad Set Name': ad.medium.name,
+                    'Ad Set ID': ad.medium.id,
+                    'Ad Name': ad.ad.name,
+                    'Ad ID': ad.ad.id,
                     'Destination URL': ad.link,
-                    'UTM Parameters': ad.trackParams,
+                    'UTM Parameters': ad.account?.trackParams,
                     'Status': 'Invalid',
                 });
             }
@@ -54,14 +54,14 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
                     Platform: 'TikTok',
-                    'Campaign Name': ad.campaignName,
-                    'Campaign ID': ad.campaignId,
-                    'Ad Set Name': ad.mediumName,
-                    'Ad Set ID': ad.mediumId,
-                    'Ad Name': ad.adName,
-                    'Ad ID': ad.adId,
+                    'Campaign Name': ad.campaign.name,
+                    'Campaign ID': ad.campaign.id,
+                    'Ad Set Name': ad.medium.name,
+                    'Ad Set ID': ad.medium.id,
+                    'Ad Name': ad.ad.name,
+                    'Ad ID': ad.ad.id,
                     'Destination URL': ad.link,
-                    'UTM Parameters': ad.trackParams,
+                    'UTM Parameters': ad.account?.trackParams,
                     'Status': 'Invalid',
                 });
             }
@@ -72,22 +72,22 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
                     Platform: 'Pinterest',
-                    'Campaign Name': ad.campaignName,
-                    'Campaign ID': ad.campaignId,
-                    'Ad Set Name': ad.mediumName,
-                    'Ad Set ID': ad.mediumId,
-                    'Ad Name': ad.adName,
-                    'Ad ID': ad.adId,
+                    'Campaign Name': ad.campaign.name,
+                    'Campaign ID': ad.campaign.id,
+                    'Ad Set Name': ad.medium.name,
+                    'Ad Set ID': ad.medium.id,
+                    'Ad Name': ad.ad.name,
+                    'Ad ID': ad.ad.id,
                     'Destination URL': ad.link,
-                    'UTM Parameters': ad.trackParams,
+                    'UTM Parameters': ad.account?.trackParams,
                     'Status': 'Invalid',
                 });
             }
         });
-        // Create worksheet
+
+        // Rest of the function remains unchanged
         const worksheet = XLSX.utils.json_to_sheet(exportRows);
 
-        // Create column widths
         const colWidths = [
             { wch: 10 },  // Platform
             { wch: 40 },  // Campaign Name
@@ -103,14 +103,11 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
         ];
         worksheet['!cols'] = colWidths;
 
-        // Create workbook
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "UTM Validation");
 
-        // Generate filename
         const fileName = `utm_validation_${dashboardName || 'report'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-        // Export
         XLSX.writeFile(workbook, fileName);
     };
 

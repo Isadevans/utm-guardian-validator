@@ -1,63 +1,37 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Clock } from "lucide-react";
-
-export interface AdsConfigItem {
-  campaignName: string;
-  campaignId: string;
-  mediumName: string;
-  mediumId: string;
-  adName: string;
-  adId: string;
-  link: string;
-  trackParams: string;
-  isLinkWithoutUtms: boolean;
-  isTrackParamsValid: boolean;
-  messages: string[];
-  preview_link: string;
-  hasTrackingOnCampaignOrAdGroup?: boolean;
-}
-
-interface ValidationSummaryProps {
-  data: {
-    facebook: AdsConfigItem[];
-    google: AdsConfigItem[];
-    tiktok: AdsConfigItem[];
-    pinterest: AdsConfigItem[];
-  };
-}
+import { CheckCircle, XCircle, AlertTriangle, Clock } from "lucide-react";
+import {ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
+import {AdsConfigItem} from "@/types/AdsConfigItem.ts";
 
 export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
-  // Calculate total_ads_checked by summing all platform ad arrays
   const total_ads_checked =
-      data.facebook.length +
-      data.google.length +
-      data.tiktok.length +
-      data.pinterest.length
+      (data.facebook?.length || 0) +
+      (data.google?.length || 0) +
+      (data.tiktok?.length || 0) +
+      (data.pinterest?.length || 0);
 
-  // Calculate errors per platform based on isTrackParamsValid being false
-// Calculate errors per platform based on messages array only
-  const facebook_errors = data.facebook.filter(ad => ad.messages && ad.messages.length > 0);
-  const google_errors = data.google.filter(ad => ad.messages && ad.messages.length > 0);
-  const tiktok_errors = data.tiktok.filter(ad => ad.messages && ad.messages.length > 0);
-  const pinterest_errors = data.pinterest.filter(ad => ad.messages && ad.messages.length > 0);
-  // Calculate total errors
-  const totalErrors = facebook_errors.length + google_errors.length + tiktok_errors.length + pinterest_errors.length;
+  // Helper to count errors in a platform's ad list
+  const countErrors = (ads: AdsConfigItem[] = []) => {
+    return ads.filter(ad => !ad.isTrackParamsValid || (ad.messages && ad.messages.length > 0)).length;
+  };
 
-  // Determine if validation is valid (no errors)
+  const facebook_errors = countErrors(data.facebook);
+  const google_errors = countErrors(data.google);
+  const tiktok_errors = countErrors(data.tiktok);
+  const pinterest_errors = countErrors(data.pinterest);
+
+  const totalErrors = facebook_errors + google_errors + tiktok_errors + pinterest_errors;
+  const validAds = total_ads_checked - totalErrors;
   const is_valid = totalErrors === 0;
 
-  // Use current time for validation timestamp
   const validation_timestamp = new Date().toISOString();
   const validationDate = new Date(validation_timestamp).toLocaleString();
 
-  const validAds = total_ads_checked - totalErrors;
-
   const platformStats = [
-    { name: "Facebook", errors: facebook_errors.length, color: "bg-blue-500" },
-    { name: "Google", errors: google_errors.length, color: "bg-red-500" },
-    { name: "TikTok", errors: tiktok_errors.length, color: "bg-gray-900" },
-    { name: "Pinterest", errors: pinterest_errors.length, color: "bg-red-600" },
+    { name: "Facebook", errors: facebook_errors, color: "bg-blue-500" },
+    { name: "Google", errors: google_errors, color: "bg-red-500" },
+    { name: "TikTok", errors: tiktok_errors, color: "bg-gray-900" },
+    { name: "Pinterest", errors: pinterest_errors, color: "bg-red-600" },
   ];
 
   return (
@@ -127,27 +101,6 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
             <p className="text-xs text-muted-foreground">
               {validationDate.split(',')[0]}
             </p>
-          </CardContent>
-        </Card>
-
-        {/* Platform Breakdown */}
-        <Card className="md:col-span-4">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Platform Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {platformStats.map((platform) => (
-                  <Badge
-                      key={platform.name}
-                      variant={platform.errors > 0 ? "destructive" : "secondary"}
-                      className="flex items-center gap-1"
-                  >
-                    <div className={`w-2 h-2 rounded-full ${platform.color}`} />
-                    {platform.name}: {platform.errors} errors
-                  </Badge>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>
