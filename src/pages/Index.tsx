@@ -13,7 +13,8 @@ import {useToast} from "@/hooks/use-toast";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
 import {Badge} from "@/components/ui/badge";
 import {ExportButton} from "@/components/ExportButton";
-import {AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts"; // Add this at the top with other imports
+import {AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
+import {UtmTemplates} from "@/components/utmTemplates.tsx"; // Add this at the top with other imports
 
 
 enum ValidationErrors {
@@ -427,6 +428,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                 <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="utmparameters">Correct Utms</TabsTrigger>
                     <TabsTrigger value="debugger">UTM Debugger</TabsTrigger>
                     <TabsTrigger value="platforms">By Platform</TabsTrigger>
                   </TabsList>
@@ -435,6 +437,9 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                     <ValidationResults data={validationData.data} />
                   </TabsContent>
 
+                  <TabsContent value="utmparameters" className="space-y-4">
+                    <UtmTemplates/>
+                  </TabsContent>
                   <TabsContent value="errors" className="space-y-4">
                     <ValidationResults data={validationData.data} showErrorsOnly />
                   </TabsContent>
