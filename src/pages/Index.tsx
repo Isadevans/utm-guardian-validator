@@ -426,7 +426,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                 <ValidationSummary data={validationData.data} />
 
                 <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="utmparameters">Correct Utms</TabsTrigger>
                     <TabsTrigger value="debugger">UTM Debugger</TabsTrigger>
