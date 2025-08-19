@@ -35,6 +35,7 @@ interface AdItem {
     campaign?: string | null;
     account?: string | null;
   };
+  isActive: boolean;
   link?: string;
   preview_link?: string;
   errorTypes: ValidationErrors[];
@@ -49,6 +50,8 @@ interface CampaignGroup {
   ads: AdItem[];
   errorCount: number;
   adCount: number;
+  isCampaignActive: boolean;
+
 }
 
 interface ValidationResultsProps {
@@ -120,13 +123,21 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   const borderColor = ad.isValid
       ? "border-l-green-500"
       : "border-l-red-500";
+   const cardOpacity = !ad.isActive ? "opacity-60" : "";
 
   return (
-      <Card className={`border-l-4 ${borderColor} mb-3`}>
+      <Card className={`border-l-4 ${borderColor} mb-3 ${cardOpacity}`}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-start">
             <div>
-              <h4 className="font-semibold">{ad.adName}</h4>
+              <h4 className="font-semibold">{ad.adName}
+                {!ad.isActive && (
+                    <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
+                      Disabled
+                    </Badge>
+                )}
+              </h4>
+
               <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                 <span>Ad ID:</span>
                 <Badge variant="outline" className="text-xs font-mono bg-gray-50">
@@ -287,9 +298,13 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
   const [isOpen, setIsOpen] = useState(false);
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const validAds = campaignGroup.ads.filter(ad => ad.isValid).length;
+  const allAdsDisabled = campaignGroup.ads.every(ad => !ad.isActive);
 
   const sortedAds = [...campaignGroup.ads].sort((a, b) => {
     // Invalid ads before valid ones
+    if (a.isActive !== b.isActive) {
+      return a.isActive ? -1 : 1;
+    }
     if (a.isValid !== b.isValid) {
       return a.isValid ? 1 : -1;
     }
@@ -317,6 +332,11 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
                     <CardTitle className="text-md font-medium flex items-center">
                       {campaignGroup.campaignName}
                       <div className={`w-3 h-3 rounded-full ml-2 ${getPlatformColor(campaignGroup.platform)}`} />
+                      {allAdsDisabled && (
+                          <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
+                            Disabled
+                          </Badge>
+                      )}
                     </CardTitle>
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <span>{campaignGroup.platform}</span>
@@ -431,7 +451,8 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
         adsetName: item.medium.name,
         adsetId: item.medium.id,
         spend:item.spend,
-        trackParams: {
+        isActive: item.isActive,
+          trackParams: {
           final: effectiveTrackParams || item.trackParams, // Use calculated effective params, with a fallback
           ad: item.ad?.trackParams,
           medium: item.medium?.trackParams,
@@ -452,6 +473,8 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
     const ads = Object.values(campaign.ads);
     const totalSpend = ads.reduce((sum, ad) => sum + ad.spend, 0);
     const errorCount = ads.filter(ad => !ad.isValid).length;
+    const isCampaignActive = ads.some(ad => ad.isActive);
+
 
     return {
       campaignName: campaign.campaignName,
@@ -461,7 +484,9 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
       errorCount: errorCount,
       adCount: ads.length,
       totalSpend,
-    };
+         isCampaignActive,
+
+  };
   });
 };
 export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: ValidationResultsProps) => {
@@ -472,6 +497,9 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   const pinterestCampaigns = Array.isArray(data.pinterest) ? processAdsData(data.pinterest, 'Pinterest') : [];
   // Combine all campaign groups
   const allCampaignGroups = [...facebookCampaigns, ...googleCampaigns, ...tiktokCampaigns, ...pinterestCampaigns].sort((a,b)=>{
+    if (a.isCampaignActive !== b.isCampaignActive) {
+           return a.isCampaignActive ? -1 : 1;
+         }
     if (a.errorCount !== b.errorCount) {
       return b.errorCount - a.errorCount;
     }
