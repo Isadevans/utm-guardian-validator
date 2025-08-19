@@ -10,103 +10,112 @@ interface ExportButtonProps {
 
 export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
     const handleExport = () => {
-        // Prepare data for export
+        // Prepara os dados para a exportação
         const exportRows = [];
 
-        // Process Facebook ads
+        // Processa anúncios do Facebook
         data.facebook.forEach(ad => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
-                    Platform: 'Facebook',
-                    'Campaign Name': ad.campaign.name,
-                    'Campaign ID': ad.campaign.id,
-                    'Ad Set Name': ad.medium.name,
-                    'Ad Set ID': ad.medium.id,
-                    'Ad Name': ad.ad.name,
-                    'Ad ID': ad.ad.id,
-                    'Destination URL': ad.link,
-                    'UTM Parameters': ad.account?.trackParams,
-                    'Status': 'Invalid',
+                    'Plataforma': 'Facebook',
+                    'Nome da Campanha': ad.campaign.name,
+                    'ID da Campanha': ad.campaign.id,
+                    'Nome do Conjunto de Anúncios': ad.medium.name,
+                    'ID do Conjunto de Anúncios': ad.medium.id,
+                    'Nome do Anúncio': ad.ad.name,
+                    'ID do Anúncio': ad.ad.id,
+                    'URL de Destino': ad.link,
+                    'Parâmetros UTM': ad.account?.trackParams,
+                    'Status': 'Inválido',
+                    'Gasto': ad.spend,
+                    'Ativo': ad.isActive,
                 });
             }
         });
 
-        // Process Google ads - only invalid ones
+        // Processa anúncios do Google - apenas os inválidos
         data.google.forEach(ad => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
-                    Platform: 'Google',
-                    'Campaign Name': ad.campaign.name,
-                    'Campaign ID': ad.campaign.id,
-                    'Ad Set Name': ad.medium.name,
-                    'Ad Set ID': ad.medium.id,
-                    'Ad Name': ad.ad.name,
-                    'Ad ID': ad.ad.id,
-                    'Destination URL': ad.link,
-                    'UTM Parameters': ad.account?.trackParams,
-                    'Status': 'Invalid',
+                    'Plataforma': 'Google',
+                    'Nome da Campanha': ad.campaign.name,
+                    'ID da Campanha': ad.campaign.id,
+                    'Nome do Conjunto de Anúncios': ad.medium.name,
+                    'ID do Conjunto de Anúncios': ad.medium.id,
+                    'Nome do Anúncio': ad.ad.name,
+                    'ID do Anúncio': ad.ad.id,
+                    'URL de Destino': ad.link,
+                    'Parâmetros UTM': ad.account?.trackParams,
+                    'Status': 'Inválido',
+                    'Gasto': ad.spend,
+                    'Ativo': ad.isActive,
                 });
             }
         });
 
-        // Process TikTok ads - only invalid ones
+        // Processa anúncios do TikTok - apenas os inválidos
         data.tiktok.forEach(ad => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
-                    Platform: 'TikTok',
-                    'Campaign Name': ad.campaign.name,
-                    'Campaign ID': ad.campaign.id,
-                    'Ad Set Name': ad.medium.name,
-                    'Ad Set ID': ad.medium.id,
-                    'Ad Name': ad.ad.name,
-                    'Ad ID': ad.ad.id,
-                    'Destination URL': ad.link,
-                    'UTM Parameters': ad.account?.trackParams,
-                    'Status': 'Invalid',
+                    'Plataforma': 'TikTok',
+                    'Nome da Campanha': ad.campaign.name,
+                    'ID da Campanha': ad.campaign.id,
+                    'Nome do Conjunto de Anúncios': ad.medium.name,
+                    'ID do Conjunto de Anúncios': ad.medium.id,
+                    'Nome do Anúncio': ad.ad.name,
+                    'ID do Anúncio': ad.ad.id,
+                    'URL de Destino': ad.link,
+                    'Parâmetros UTM': ad.account?.trackParams,
+                    'Status': 'Inválido',
+                    'Gasto': ad.spend,
+                    'Ativo': ad.isActive,
                 });
             }
         });
 
-        // Process Pinterest ads - only invalid ones
+        // Processa anúncios do Pinterest - apenas os inválidos
         data.pinterest.forEach(ad => {
             if (!ad.isTrackParamsValid) {
                 exportRows.push({
-                    Platform: 'Pinterest',
-                    'Campaign Name': ad.campaign.name,
-                    'Campaign ID': ad.campaign.id,
-                    'Ad Set Name': ad.medium.name,
-                    'Ad Set ID': ad.medium.id,
-                    'Ad Name': ad.ad.name,
-                    'Ad ID': ad.ad.id,
-                    'Destination URL': ad.link,
-                    'UTM Parameters': ad.account?.trackParams,
-                    'Status': 'Invalid',
+                    'Plataforma': 'Pinterest',
+                    'Nome da Campanha': ad.campaign.name,
+                    'ID da Campanha': ad.campaign.id,
+                    'Nome do Conjunto de Anúncios': ad.medium.name,
+                    'ID do Conjunto de Anúncios': ad.medium.id,
+                    'Nome do Anúncio': ad.ad.name,
+                    'ID do Anúncio': ad.ad.id,
+                    'URL de Destino': ad.link,
+                    'Parâmetros UTM': ad.account?.trackParams,
+                    'Status': 'Inválido',
+                    'Gasto': ad.spend,
+                    'Ativo': ad.isActive,
                 });
             }
         });
 
-        // Rest of the function remains unchanged
+        // O resto da função permanece inalterado
         const worksheet = XLSX.utils.json_to_sheet(exportRows);
 
         const colWidths = [
-            { wch: 10 },  // Platform
-            { wch: 40 },  // Campaign Name
-            { wch: 15 },  // Campaign ID
-            { wch: 25 },  // Ad Set Name
-            { wch: 15 },  // Ad Set ID
-            { wch: 30 },  // Ad Name
-            { wch: 15 },  // Ad ID
-            { wch: 40 },  // Destination URL
-            { wch: 40 },  // UTM Parameters
+            { wch: 15 },  // Plataforma
+            { wch: 40 },  // Nome da Campanha
+            { wch: 20 },  // ID da Campanha
+            { wch: 40 },  // Nome do Conjunto de Anúncios
+            { wch: 20 },  // ID do Conjunto de Anúncios
+            { wch: 40 },  // Nome do Anúncio
+            { wch: 20 },  // ID do Anúncio
+            { wch: 50 },  // URL de Destino
+            { wch: 50 },  // Parâmetros UTM
             { wch: 10 },  // Status
-            { wch: 40 },  // Issues
+            { wch: 15 },  // Gasto
+            { wch: 10 },  // Ativo
         ];
         worksheet['!cols'] = colWidths;
 
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "UTM Validation");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Validação UTM");
 
-        const fileName = `utm_validation_${dashboardName || 'report'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        const fileName = `validacao_utm_${dashboardName || 'relatorio'}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
         XLSX.writeFile(workbook, fileName);
     };
@@ -118,7 +127,7 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
             className="flex items-center gap-2"
         >
             <Download className="h-4 w-4" />
-            Export to Excel
+            Exportar para Excel
         </Button>
     );
 };
