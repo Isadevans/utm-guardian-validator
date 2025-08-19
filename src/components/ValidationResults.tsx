@@ -123,7 +123,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   const borderColor = ad.isValid
       ? "border-l-green-500"
       : "border-l-red-500";
-   const cardOpacity = !ad.isActive ? "opacity-60" : "";
+   const cardOpacity = !ad.isActive ? "opacity-80" : "";
 
   return (
       <Card className={`border-l-4 ${borderColor} mb-3 ${cardOpacity}`}>
@@ -154,7 +154,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                 )}
                       <span>•</span>
                       <span className="font-medium">Spend:</span>
-                      <span className="font-mono text-gray-800">${ad.spend != null  ? ad.spend?.toFixed(2) : "No known spend"}</span>
+                      <span className="font-mono text-gray-800">{ad.spend != null  ? `$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -232,7 +232,9 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                   { level: 'Campaign', params: ad.trackParams.campaign },
                   { level: 'Account', params: ad.trackParams.account },
                 ].map(({ level, params }) => {
+
                   const isEffective = params && params === ad.trackParams.final;
+const finalParams = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign || ad.trackParams.account || ad.trackParams;
                   return (
                       <div key={level}>
                         <span className={`font-semibold text-gray-600 flex items-center gap-2 ${isEffective ? 'text-sky-700' : ''}`}>
