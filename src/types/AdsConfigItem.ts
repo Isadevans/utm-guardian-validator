@@ -7,6 +7,8 @@ export interface AdsConfigItem {
     preview_link?: string; // Added preview_link to the main interface
     isLinkWithoutUtms: boolean
     isTrackParamsValid: boolean
+    spend: number
+    isActive: boolean
     trackParams?:string
     messages: string[]
 }

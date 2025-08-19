@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye } from "lucide-react";
-import { ExportButton } from "./ExportButton"; // Add this at the top with other imports
+import { ExportButton } from "./ExportButton";
 
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -27,9 +27,15 @@ interface AdItem {
   campaignId: string;
   adsetName?: string;
   adsetId?: string;
-  trackParams?: string;
+  trackParams: {
+    final?: string;
+    ad?: string;
+    medium?: string;
+    campaign?: string;
+    account?: string;
+  };
   link?: string;
-  preview_link?: string; // Added preview_link property
+  preview_link?: string;
   errorTypes: ValidationErrors[];
   isValid: boolean;
 }
@@ -174,23 +180,50 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                     No ad preview available for this ad
                   </div>
               )}
-            <div className="text-xs space-y-1">
-              <div className="flex items-center gap-1">
-                <LinkIcon className="h-3 w-3" />
-                <span className="font-medium">Destination URL:</span>
-              </div>
-              <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
+              <div className="text-xs space-y-1">
+                <div className="flex items-center gap-1">
+                  <LinkIcon className="h-3 w-3" />
+                  <span className="font-medium">Destination URL:</span>
+                </div>
+                <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
                 {ad.link || "No URL provided"}
               </pre>
-            </div>
+              </div>
 
             </div>
 
-            <div className="text-xs space-y-1">
-              <span className="font-medium">UTM Parameters:</span>
-              <pre className={`mt-1 p-2 ${!ad.isValid ? 'bg-red-50' : 'bg-green-50'} rounded text-xs break-all whitespace-pre-wrap`}>
-                {ad.trackParams || "No UTM parameters found"}
-              </pre>
+            <div className="text-xs space-y-3">
+              <span className="font-medium">UTM Parameters Breakdown:</span>
+
+              <div>
+                <div className={`flex items-center gap-2 p-2 rounded-t-md ${!ad.isValid ? 'bg-red-100 border-x border-t border-red-200' : 'bg-green-100 border-x border-t border-green-200'}`}>
+                  <span className="font-semibold">
+                    Final Effective Parameters
+                  </span>
+                  {ad.isValid ? <CheckCircle className="h-4 w-4 text-green-700"/> : <XCircle className="h-4 w-4 text-red-700"/>}
+                </div>
+                <pre className={`p-2 rounded-b-md text-xs break-all whitespace-pre-wrap ${!ad.isValid ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                  {ad.trackParams.final || "No UTM parameters found"}
+                </pre>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                {[
+                  { level: 'Ad', params: ad.trackParams.ad },
+                  { level: 'Ad Set', params: ad.trackParams.medium },
+                  { level: 'Campaign', params: ad.trackParams.campaign },
+                  { level: 'Account', params: ad.trackParams.account },
+                ]
+                    .filter(item => item.params) // Only show levels that have params
+                    .map(({ level, params }) => (
+                        <div key={level}>
+                          <span className="font-semibold text-gray-600">{level} Level Parameters:</span>
+                          <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap border border-gray-200">
+                      {params}
+                    </pre>
+                        </div>
+                    ))}
+              </div>
             </div>
 
             {!ad.isValid && (
@@ -355,7 +388,13 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
         campaignId: item.campaign.id,
         adsetName: item.medium.name,
         adsetId: item.medium.id,
-        trackParams: item.trackParams || item.account?.trackParams,
+        trackParams: {
+          final: item.trackParams,
+          ad: item.ad?.trackParams,
+          medium: item.medium?.trackParams,
+          campaign: item.campaign?.trackParams,
+          account: item.account?.trackParams,
+        },
         preview_link: item.preview_link,
         link: item.link ,
         errorTypes: item.messages as ValidationErrors[] || [],
@@ -403,10 +442,10 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
 
   // Platform data for summary
   const platformData = [
-    { name: 'Facebook', campaigns: facebookCampaigns, isEmpty: data.facebook.length === 0 },
-    { name: 'Google', campaigns: googleCampaigns, isEmpty: data.google.length === 0 },
-    { name: 'TikTok', campaigns: tiktokCampaigns, isEmpty: data.tiktok.length === 0 },
-    { name: 'Pinterest', campaigns: pinterestCampaigns, isEmpty: data.pinterest.length === 0 }
+    { name: 'Facebook', campaigns: facebookCampaigns, isEmpty: !data.facebook || data.facebook.length === 0 },
+    { name: 'Google', campaigns: googleCampaigns, isEmpty: !data.google || data.google.length === 0 },
+    { name: 'TikTok', campaigns: tiktokCampaigns, isEmpty: !data.tiktok || data.tiktok.length === 0 },
+    { name: 'Pinterest', campaigns: pinterestCampaigns, isEmpty: !data.pinterest || data.pinterest.length === 0 }
   ];
 
   // Count platforms with no data
