@@ -1,5 +1,6 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, XCircle, AlertTriangle, Clock } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Clock, DollarSign } from "lucide-react";
 import {ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
 import {AdsConfigItem} from "@/types/AdsConfigItem.ts";
 
@@ -27,12 +28,11 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
   const validation_timestamp = new Date().toISOString();
   const validationDate = new Date(validation_timestamp).toLocaleString();
 
-  const platformStats = [
-    { name: "Facebook", errors: facebook_errors, color: "bg-blue-500" },
-    { name: "Google", errors: google_errors, color: "bg-red-500" },
-    { name: "TikTok", errors: tiktok_errors, color: "bg-gray-900" },
-    { name: "Pinterest", errors: pinterest_errors, color: "bg-red-600" },
-  ];
+  const sumSpend = (ads: AdsConfigItem[] = []) => {
+    return ads.reduce((total, ad) => total + (ad.spend || 0), 0);
+  };
+
+  const totalSpend = sumSpend(data.facebook) + sumSpend(data.google) + sumSpend(data.tiktok) + sumSpend(data.pinterest);
 
   return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-7xl mx-auto">
@@ -74,18 +74,18 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
           </CardContent>
         </Card>
 
-        {/* Error Rate */}
+        {/* Total Spend */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Spend</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {total_ads_checked > 0 ? ((totalErrors / total_ads_checked) * 100).toFixed(1) : 0}%
+              ${totalSpend.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {totalErrors} of {total_ads_checked} ads
+              Across all {total_ads_checked} ads
             </p>
           </CardContent>
         </Card>

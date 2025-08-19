@@ -27,12 +27,13 @@ interface AdItem {
   campaignId: string;
   adsetName?: string;
   adsetId?: string;
+  spend: number;
   trackParams: {
-    final?: string;
-    ad?: string;
-    medium?: string;
-    campaign?: string;
-    account?: string;
+    final?: string | null;
+    ad?: string | null;
+    medium?: string | null;
+    campaign?: string | null;
+    account?: string | null;
   };
   link?: string;
   preview_link?: string;
@@ -41,6 +42,7 @@ interface AdItem {
 }
 
 interface CampaignGroup {
+  totalSpend: number;
   campaignName: string;
   campaignId: string;
   platform: string;
@@ -103,7 +105,18 @@ const getErrorTypeInfo = (errorType: ValidationErrors) => {
 };
 
 const AdCard = ({ ad }: { ad: AdItem }) => {
+  const getRecommendationInfo = () => {
+    return {
+      title: 'Recommendation',
+      description: 'For better consistency and management, it is recommended to set UTM parameters at the account level using a tracking template instead of at the ad, ad set, or campaign level.',
+      icon: <Info className="h-4 w-4" />,
+      color: 'bg-blue-100 border-blue-300 text-blue-800'
+    };
+  };
 
+  // Check if there are UTMs at the ad, ad set, or campaign level
+  const hasLowerLevelUtms = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign;
+  const recommendationInfo = getRecommendationInfo();
   const borderColor = ad.isValid
       ? "border-l-green-500"
       : "border-l-red-500";
@@ -111,45 +124,39 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   return (
       <Card className={`border-l-4 ${borderColor} mb-3`}>
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-sm font-medium flex items-center gap-1">
-                {ad.adName}
-                <Badge variant="outline" className="text-xs ml-1 font-mono bg-gray-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-semibold">{ad.adName}</h4>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                <span>Ad ID:</span>
+                <Badge variant="outline" className="text-xs font-mono bg-gray-50">
                   {ad.adId}
                 </Badge>
-                {ad.isValid && (
-                    <Badge className="bg-green-100 text-green-800 ml-2">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Valid
-                    </Badge>
+                {ad.adsetId && (
+                    <>
+                      <span>•</span>
+                      <span>Ad Set ID:</span>
+                      <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                        {ad.adsetId}
+                      </Badge>
+                    </>
                 )}
-              </CardTitle>
-              <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-
-                {ad.adsetName && (
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium">Ad Set:</span>
-                      <span>{ad.adsetName}</span>
-                      {ad.adsetId && (
-                          <Badge variant="outline" className="text-xs ml-1 font-mono bg-gray-50">
-                            {ad.adsetId}
-                          </Badge>
-                      )}
-                    </div>
-                )}
+                      <span>•</span>
+                      <span className="font-medium">Spend:</span>
+                      <span className="font-mono text-gray-800">${ad.spend != null  ? ad.spend?.toFixed(2) : "No known spend"}</span>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1 justify-end">
-              {!ad.isValid && ad.errorTypes.map((errorType, index) => {
-                const info = getErrorTypeInfo(errorType);
-                return (
-                    <Badge key={index} className={info.color} variant="outline">
-                      {info.icon}
-                      <span className="ml-1">{info.title}</span>
-                    </Badge>
-                );
-              })}
+            <div className="flex items-center space-x-2">
+              {ad.preview_link && (
+                  <a href={ad.preview_link} target="_blank" rel="noopener noreferrer" title="Preview Ad" className="text-muted-foreground hover:text-primary">
+                    <Eye className="h-4 w-4" />
+                  </a>
+              )}
+              {ad.link && (
+                  <a href={ad.link} target="_blank" rel="noopener noreferrer" title="Destination URL" className="text-muted-foreground hover:text-primary">
+                    <LinkIcon className="h-4 w-4" />
+                  </a>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -213,18 +220,47 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                   { level: 'Ad Set', params: ad.trackParams.medium },
                   { level: 'Campaign', params: ad.trackParams.campaign },
                   { level: 'Account', params: ad.trackParams.account },
-                ]
-                    .filter(item => item.params) // Only show levels that have params
-                    .map(({ level, params }) => (
-                        <div key={level}>
-                          <span className="font-semibold text-gray-600">{level} Level Parameters:</span>
-                          <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap border border-gray-200">
-                      {params}
-                    </pre>
-                        </div>
-                    ))}
+                ].map(({ level, params }) => {
+                  const isEffective = params && params === ad.trackParams.final;
+                  return (
+                      <div key={level}>
+                        <span className={`font-semibold text-gray-600 flex items-center gap-2 ${isEffective ? 'text-sky-700' : ''}`}>
+                          {level} Level Parameters:
+                          {isEffective && (
+                              <Badge variant="outline" className="text-xs font-medium bg-sky-100 text-sky-800 border-sky-300">
+                                Effective
+                              </Badge>
+                          )}
+                        </span>
+                        {params ? (
+                            <pre className={`mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap border ${isEffective ? 'border-sky-300 ring-1 ring-sky-200' : 'border-gray-200'}`}>
+                              {params}
+                            </pre>
+                        ) : (
+                            <div className="mt-1 p-2 bg-gray-100 rounded text-xs text-gray-500 italic border border-gray-200">
+                              No parameters set at this level.
+                            </div>
+                        )}
+                      </div>
+                  );
+                })}
               </div>
             </div>
+            {ad.isValid && hasLowerLevelUtms && (
+                <Alert className={`border-blue-200 bg-blue-50 ${recommendationInfo.color}`}>
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      {recommendationInfo.icon}
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium">{recommendationInfo.title}</h3>
+                      <div className="mt-2 text-xs text-blue-700">
+                        <p>{recommendationInfo.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Alert>
+            )}
 
             {!ad.isValid && (
                 <div className="text-xs space-y-1">
@@ -291,6 +327,9 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
                       </Badge>
                       <span>•</span>
                       <span>{campaignGroup.adCount} ads</span>
+                      <span>•</span>
+                      <span className="font-medium">Spend:</span>
+                      <span className="font-mono text-gray-800">${campaignGroup.totalSpend?.toFixed(2) || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -380,6 +419,9 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
     if (!campaignMap[item.campaign.id].ads[item.ad.id]) {
       const isValid = item.isTrackParamsValid && (!item.messages || item.messages.length === 0);
 
+      // Determine the effective tracking parameters by checking from the most specific level (ad) to the most general (account).
+      const effectiveTrackParams = item.ad?.trackParams || item.medium?.trackParams || item.campaign?.trackParams || item.account?.trackParams;
+
       campaignMap[item.campaign.id].ads[item.ad.id] = {
         adId: item.ad.id,
         adName: item.ad.name,
@@ -388,8 +430,9 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
         campaignId: item.campaign.id,
         adsetName: item.medium.name,
         adsetId: item.medium.id,
+        spend:item.spend,
         trackParams: {
-          final: item.trackParams,
+          final: effectiveTrackParams || item.trackParams, // Use calculated effective params, with a fallback
           ad: item.ad?.trackParams,
           medium: item.medium?.trackParams,
           campaign: item.campaign?.trackParams,
@@ -405,7 +448,9 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
 
   // Convert to array format and calculate counts
   return Object.values(campaignMap).map(campaign => {
+
     const ads = Object.values(campaign.ads);
+    const totalSpend = ads.reduce((sum, ad) => sum + ad.spend, 0);
     const errorCount = ads.filter(ad => !ad.isValid).length;
 
     return {
@@ -414,7 +459,8 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
       platform: platform,
       ads: ads,
       errorCount: errorCount,
-      adCount: ads.length
+      adCount: ads.length,
+      totalSpend,
     };
   });
 };
@@ -424,7 +470,6 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   const googleCampaigns = Array.isArray(data.google) ? processAdsData(data.google, 'Google') : [];
   const tiktokCampaigns = Array.isArray(data.tiktok) ? processAdsData(data.tiktok, 'TikTok') : [];
   const pinterestCampaigns = Array.isArray(data.pinterest) ? processAdsData(data.pinterest, 'Pinterest') : [];
-
   // Combine all campaign groups
   const allCampaignGroups = [...facebookCampaigns, ...googleCampaigns, ...tiktokCampaigns, ...pinterestCampaigns].sort((a,b)=>{
     if (a.errorCount !== b.errorCount) {
@@ -527,6 +572,12 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
                               <span className="font-medium">{platform.campaigns.length}</span>
                             </div>
                             <div className="flex justify-between items-center">
+                              <span className="text-sm">Total Spend:</span>
+                              <span className="font-medium">
+          ${platform.campaigns.reduce((sum, c) => sum + c.totalSpend, 0).toFixed(2)}
+        </span>
+                            </div>
+                            <div className="flex justify-between items-center">
                               <span className="text-sm">Errors:</span>
                               <Badge variant={platform.campaigns.some(c => c.errorCount > 0) ? "destructive" : "outline"}>
                                 {platform.campaigns.reduce((sum, c) => sum + c.errorCount, 0)}
@@ -560,7 +611,6 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
     );
   }
 
-  // Default view: show all campaigns regardless of platform
   return (
       <div className="space-y-4">
         <div className="flex justify-end mb-2">
