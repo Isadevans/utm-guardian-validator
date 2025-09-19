@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye } from "lucide-react";
+import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye, Search } from "lucide-react";
 import { ExportButton } from "./ExportButton";
 
 import { useState } from "react";
@@ -56,10 +56,10 @@ interface CampaignGroup {
 
 interface ValidationResultsProps {
   data: AdsConfigsResult;
-  showErrorsOnly?: boolean;
   groupByPlatform?: boolean;
   showDisabled?: boolean;
   showNonSpend?: boolean;
+  searchQuery?: string;
 }
 
 const getErrorTypeInfo = (errorType: ValidationErrors) => {
@@ -308,11 +308,14 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   );
 };
 
-const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) => {
+interface CampaignGroupCardProps {
+  campaignGroup: CampaignGroup;
+}
+
+const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showOnlyErrors, setShowOnlyErrors] = useState(false);
-  const validAds = campaignGroup.ads.filter(ad => ad.isValid).length;
-  const allAdsDisabled = campaignGroup.ads.every(ad => !ad.isActive);
+  const validAdsInGroup = campaignGroup.ads.filter(ad => ad.isValid).length;
+  const allAdsInOriginalGroupDisabled = campaignGroup.ads.every(ad => !ad.isActive);
 
   const sortedAds = [...campaignGroup.ads].sort((a, b) => {
     const aIsError = !a.isValid && a.spend > 0;
@@ -346,9 +349,8 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
     return 0; // Maintain original order if all else is equal
   });
 
-  const displayAds = showOnlyErrors
-      ? sortedAds.filter(ad => !ad.isValid)
-      : sortedAds;
+  const displayAds = sortedAds;
+
   return (
       <Card className="mb-4">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -361,7 +363,7 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
                     <CardTitle className="text-md font-medium flex items-center">
                       {campaignGroup.campaignName}
                       <div className={`w-3 h-3 rounded-full ml-2 ${getPlatformColor(campaignGroup.platform)}`} />
-                      {allAdsDisabled && (
+                      {allAdsInOriginalGroupDisabled && (
                           <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
                             Disabled
                           </Badge>
@@ -403,18 +405,7 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
               {isOpen && (
                   <div className="mb-4 flex justify-between items-center">
                     <div className="text-sm">
-                      {validAds} of {campaignGroup.adCount} ads valid ({Math.round((validAds/campaignGroup.adCount)*100)}%)
-                    </div>
-                    <div className="flex items-center">
-                      <label className="text-sm flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={showOnlyErrors}
-                            onChange={() => setShowOnlyErrors(!showOnlyErrors)}
-                            className="mr-2"
-                        />
-                        Show only errors
-                      </label>
+                      {validAdsInGroup} of {campaignGroup.adCount} ads valid ({Math.round((validAdsInGroup/campaignGroup.adCount)*100)}%)
                     </div>
                   </div>
               )}
@@ -424,7 +415,7 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
                 ))}
                 {displayAds.length === 0 && (
                     <div className="text-center py-6 text-muted-foreground">
-                      No ads with errors found in this campaign
+                      No ads match the current filters.
                     </div>
                 )}
               </div>
@@ -519,7 +510,7 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
     };
   });
 };
-export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showDisabled, showNonSpend }: ValidationResultsProps) => {
+export const ValidationResults = ({ data, groupByPlatform, showDisabled = false, showNonSpend = false, searchQuery = "" }: ValidationResultsProps) => {
   // Group ads by campaign for each platform
   const facebookCampaigns = Array.isArray(data.facebook) ? processAdsData(data.facebook, 'Facebook') : [];
   const googleCampaigns = Array.isArray(data.google) ? processAdsData(data.google, 'Google') : [];
@@ -541,16 +532,56 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showD
     return a.campaignName.localeCompare(b.campaignName)
   });
 
-  // Apply global filters
-  let filteredCampaignGroups = allCampaignGroups;
-  if (!showDisabled) {
-    filteredCampaignGroups = filteredCampaignGroups.filter(group => group.isCampaignActive);
-  }
-  if (!showNonSpend) {
-    filteredCampaignGroups = filteredCampaignGroups.filter(group => group.totalSpend > 0);
-  }
+  // Apply global filters by creating a new list of groups with filtered ads
+  const filteredCampaignGroups = allCampaignGroups
+      .map(group => {
+        const filteredAds = group.ads.filter(ad => {
+          if (!showDisabled && !ad.isActive) {
+            return false;
+          }
+          if (!showNonSpend && (ad.spend === 0 || ad.spend == null)) {
+            return false;
+          }
+          return true;
+        });
+        // Return a new group object with the filtered list of ads
+        return { ...group, ads: filteredAds };
+      })
+      // Then, remove any group that is now empty
+      .filter(group => group.ads.length > 0);
 
-  // Calculate total ads and errors across all campaigns
+  const searchedCampaignGroups = filteredCampaignGroups.map(group => {
+    if (!searchQuery.trim()) {
+      return group;
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+
+    const searchedAds = group.ads.filter(ad => {
+      const campaignNameMatch = ad.campaignName.toLowerCase().includes(lowercasedQuery);
+      const campaignIdMatch = ad.campaignId.toLowerCase().includes(lowercasedQuery);
+      const adNameMatch = ad.adName.toLowerCase().includes(lowercasedQuery);
+      const adIdMatch = ad.adId.toLowerCase().includes(lowercasedQuery);
+      const adsetNameMatch = ad.adsetName?.toLowerCase().includes(lowercasedQuery) || false;
+      const adsetIdMatch = ad.adsetId?.toLowerCase().includes(lowercasedQuery) || false;
+
+      return (
+          campaignNameMatch ||
+          campaignIdMatch ||
+          adNameMatch ||
+          adIdMatch ||
+          adsetNameMatch ||
+          adsetIdMatch
+      );
+    });
+
+    if (searchedAds.length > 0) {
+      return { ...group, ads: searchedAds };
+    }
+    return null;
+  }).filter((group): group is CampaignGroup => group !== null);
+
+
+  // Calculate total ads and errors across all campaigns (using original data for accuracy)
   const totalAds = allCampaignGroups.reduce((sum, group) => sum + group.adCount, 0);
   const totalErrors = allCampaignGroups.reduce((sum, group) => sum + group.errorCount, 0);
   const isValid = totalErrors === 0;
@@ -569,29 +600,14 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showD
 
   // Prepare filtered data for the export button
   const getFilteredDataForExport = (): AdsConfigsResult => {
-    const campaignIdsToKeep = new Set(filteredCampaignGroups.map(c => c.campaignId));
+    const adIdsToKeep = new Set(searchedCampaignGroups.flatMap(group => group.ads.map(ad => ad.adId)));
     return {
-      facebook: data.facebook?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
-      google: data.google?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
-      tiktok: data.tiktok?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
-      pinterest: data.pinterest?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
+      facebook: data.facebook?.filter(item => adIdsToKeep.has(item.ad.id)) || [],
+      google: data.google?.filter(item => adIdsToKeep.has(item.ad.id)) || [],
+      tiktok: data.tiktok?.filter(item => adIdsToKeep.has(item.ad.id)) || [],
+      pinterest: data.pinterest?.filter(item => adIdsToKeep.has(item.ad.id)) || [],
     };
   };
-
-  // If showing errors only and there are none, display success message
-  if (showErrorsOnly && isValid && hasSomeData) {
-    return (
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="text-center space-y-2">
-              <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-              <h3 className="text-lg font-medium">No Errors Found</h3>
-              <p className="text-muted-foreground">All UTM configurations are valid!</p>
-            </div>
-          </CardContent>
-        </Card>
-    );
-  }
 
   // If no data at all
   if (!hasSomeData) {
@@ -614,6 +630,50 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showD
 
   // If grouping by platform, organize campaigns by their platform
   if (groupByPlatform) {
+    const filteredPlatformData = platformData.map(platform => ({
+      ...platform,
+      campaigns: platform.campaigns
+          .map(group => {
+            const filteredAds = group.ads.filter(ad => {
+              if (!showDisabled && !ad.isActive) return false;
+              if (!showNonSpend && (ad.spend === 0 || ad.spend == null)) return false;
+              return true;
+            });
+            return { ...group, ads: filteredAds, adCount: filteredAds.length };
+          })
+          .filter(group => group.ads.length > 0),
+    })).map(platform => {
+      if (!searchQuery.trim()) {
+        return platform;
+      }
+
+      const lowercasedQuery = searchQuery.toLowerCase();
+      const searchedCampaigns = platform.campaigns.map(group => {
+        const searchedAds = group.ads.filter(ad => {
+          const campaignNameMatch = ad.campaignName.toLowerCase().includes(lowercasedQuery);
+          const campaignIdMatch = ad.campaignId.toLowerCase().includes(lowercasedQuery);
+          const adNameMatch = ad.adName.toLowerCase().includes(lowercasedQuery);
+          const adIdMatch = ad.adId.toLowerCase().includes(lowercasedQuery);
+          const adsetNameMatch = ad.adsetName?.toLowerCase().includes(lowercasedQuery) || false;
+          const adsetIdMatch = ad.adsetId?.toLowerCase().includes(lowercasedQuery) || false;
+
+          return (
+              campaignNameMatch || campaignIdMatch || adNameMatch || adIdMatch || adsetNameMatch || adsetIdMatch
+          );
+        });
+
+        if (searchedAds.length > 0) {
+          return { ...group, ads: searchedAds, adCount: searchedAds.length };
+        }
+        return null;
+      }).filter((group): group is CampaignGroup => group !== null);
+
+      return {
+        ...platform,
+        campaigns: searchedCampaigns,
+      };
+    });
+
     return (
         <Tabs defaultValue="summary">
           <TabsList className="mb-4">
@@ -672,17 +732,20 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showD
             </div>
           </TabsContent>
 
-          {platformData.filter(p => !p.isEmpty).map(platform => (
+          {filteredPlatformData.filter(p => !p.isEmpty).map(platform => (
               <TabsContent key={platform.name} value={platform.name.toLowerCase()}>
                 <div className="space-y-4">
                   {platform.campaigns.length > 0 ? (
                       platform.campaigns.map((campaign) => (
-                          <CampaignGroupCard key={`${platform.name}-${campaign.campaignId}`} campaignGroup={campaign} />
+                          <CampaignGroupCard
+                              key={`${platform.name}-${campaign.campaignId}`}
+                              campaignGroup={campaign}
+                          />
                       ))
                   ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        No data available for {platform.name}
+                        No data available for {platform.name} matching the current filters.
                       </div>
                   )}
                 </div>
@@ -720,9 +783,18 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showD
         )}
 
         <div className="space-y-4">
-          {filteredCampaignGroups.map((campaign) => (
-              <CampaignGroupCard key={`${campaign.platform}-${campaign.campaignId}`} campaignGroup={campaign} />
+          {searchedCampaignGroups.map((campaign) => (
+              <CampaignGroupCard
+                  key={`${campaign.platform}-${campaign.campaignId}`}
+                  campaignGroup={campaign}
+              />
           ))}
+          {searchedCampaignGroups.length === 0 && (
+              <div className="text-center py-10 text-muted-foreground">
+                <Search className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                <p>No results found for your search.</p>
+              </div>
+          )}
         </div>
       </div>
   );

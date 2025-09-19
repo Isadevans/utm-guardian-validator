@@ -62,6 +62,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   const [showDisabled, setShowDisabled] = useState(false);
   const [showNonSpend, setShowNonSpend] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   useEffect(() => {
     // If we have a token and account ID, fetch dashboards automatically on component mount
@@ -437,6 +438,15 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                       <TabsTrigger value="utmparameters">Correct Utms</TabsTrigger>
                       <TabsTrigger value="platforms">By Platform</TabsTrigger>
                     </TabsList>
+                    <div className="relative ml-4">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                          placeholder="Search by name or ID..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 w-64"
+                      />
+                    </div>
                     <div className="flex items-center space-x-4 ml-4">
                       <div className="flex items-center space-x-2">
                         <Label htmlFor="disabled-toggle" className="whitespace-nowrap">Show disabled</Label>
@@ -458,7 +468,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   </div>
 
                   <TabsContent value="overview" className="space-y-4">
-                    <ValidationResults data={validationData.data} showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} />
+                    <ValidationResults data={validationData.data} showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
                   </TabsContent>
 
                   <TabsContent value="utmparameters" className="space-y-4">
@@ -477,7 +487,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   </TabsContent>
 
                   <TabsContent value="platforms" className="space-y-4">
-                    <ValidationResults data={validationData.data} groupByPlatform showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} />
+                    <ValidationResults data={validationData.data} groupByPlatform  showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -490,12 +500,13 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   <div className="flex justify-between items-center">
                     <CardTitle>Bulk Validation Report</CardTitle>
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="bulk-errors-only-toggle">Show only errors</Label>
-                        <Switch
-                            id="bulk-errors-only-toggle"
-                            checked={showErrorsOnly}
-                            onCheckedChange={setShowErrorsOnly}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by name or ID..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 w-64"
                         />
                       </div>
                       <div className="flex items-center space-x-2">
@@ -568,9 +579,6 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
 
                                 let campaignIdsToKeep = Object.keys(campaignMap);
 
-                                if (showErrorsOnly) {
-                                  campaignIdsToKeep = campaignIdsToKeep.filter(id => campaignMap[id].hasErrors);
-                                }
                                 if (!showDisabled) {
                                   campaignIdsToKeep = campaignIdsToKeep.filter(id => campaignMap[id].isActive);
                                 }
@@ -609,7 +617,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                                             dashboardName={result.dashboardName}
                                         />
                                       </div>
-                                      <ValidationResults data={result.data} showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} />
+                                      <ValidationResults data={result.data} showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
                                     </AccordionContent>
                                   </AccordionItem>
                               );
