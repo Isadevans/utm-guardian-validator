@@ -1,25 +1,32 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, AlertTriangle, Clock, DollarSign } from "lucide-react";
 import {ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
 import {AdsConfigItem} from "@/types/AdsConfigItem.ts";
 
 export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
+  // Filter for active ads to ensure the summary only reflects active campaigns.
+  // Note: This assumes that an ad object has a `status` property with a value of 'ACTIVE'.
+  const activeFacebookAds = data.facebook?.filter(ad => ad.isActive) || [];
+  const activeGoogleAds = data.google?.filter(ad => ad.isActive) || [];
+  const activeTiktokAds = data.tiktok?.filter(ad => ad.isActive) || [];
+  const activePinterestAds = data.pinterest?.filter(ad => ad.isActive) || [];
+
   const total_ads_checked =
-      (data.facebook?.length || 0) +
-      (data.google?.length || 0) +
-      (data.tiktok?.length || 0) +
-      (data.pinterest?.length || 0);
+      activeFacebookAds.length +
+      activeGoogleAds.length +
+      activeTiktokAds.length +
+      activePinterestAds.length;
 
   // Helper to count errors in a platform's ad list
+  // An error is only counted if the ad has validation issues AND is spending money.
   const countErrors = (ads: AdsConfigItem[] = []) => {
-    return ads.filter(ad => !ad.isTrackParamsValid || (ad.messages && ad.messages.length > 0)).length;
+    return ads.filter(ad => (!ad.isTrackParamsValid || (ad.messages && ad.messages.length > 0)) && ad.spend > 0).length;
   };
 
-  const facebook_errors = countErrors(data.facebook);
-  const google_errors = countErrors(data.google);
-  const tiktok_errors = countErrors(data.tiktok);
-  const pinterest_errors = countErrors(data.pinterest);
+  const facebook_errors = countErrors(activeFacebookAds);
+  const google_errors = countErrors(activeGoogleAds);
+  const tiktok_errors = countErrors(activeTiktokAds);
+  const pinterest_errors = countErrors(activePinterestAds);
 
   const totalErrors = facebook_errors + google_errors + tiktok_errors + pinterest_errors;
   const validAds = total_ads_checked - totalErrors;
@@ -32,7 +39,7 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
     return ads.reduce((total, ad) => total + (ad.spend || 0), 0);
   };
 
-  const totalSpend = sumSpend(data.facebook) + sumSpend(data.google) + sumSpend(data.tiktok) + sumSpend(data.pinterest);
+  const totalSpend = sumSpend(activeFacebookAds) + sumSpend(activeGoogleAds) + sumSpend(activeTiktokAds) + sumSpend(activePinterestAds);
 
   return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-7xl mx-auto">

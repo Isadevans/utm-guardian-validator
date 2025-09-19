@@ -58,6 +58,8 @@ interface ValidationResultsProps {
   data: AdsConfigsResult;
   showErrorsOnly?: boolean;
   groupByPlatform?: boolean;
+  showDisabled?: boolean;
+  showNonSpend?: boolean;
 }
 
 const getErrorTypeInfo = (errorType: ValidationErrors) => {
@@ -120,10 +122,15 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   // Check if there are UTMs at the ad, ad set, or campaign level
   const hasLowerLevelUtms = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign;
   const recommendationInfo = getRecommendationInfo();
+  const isError = !ad.isValid && ad.spend > 0;
+  const isWarning = !ad.isValid && (ad.spend === 0 || ad.spend == null);
+
   const borderColor = ad.isValid
       ? "border-l-green-500"
-      : "border-l-red-500";
-   const cardOpacity = !ad.isActive ? "opacity-80" : "";
+      : isError
+          ? "border-l-red-500"
+          : "border-l-yellow-500";
+  const cardOpacity = !ad.isActive ? "opacity-80" : "";
 
   return (
       <Card className={`border-l-4 ${borderColor} mb-3 ${cardOpacity}`}>
@@ -134,6 +141,11 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                 {!ad.isActive && (
                     <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
                       Disabled
+                    </Badge>
+                )}
+                {(ad.spend === 0 || ad.spend == null) && ad.isActive && (
+                    <Badge variant="outline" className="ml-2 bg-yellow-200 text-yellow-800">
+                      No Spend
                     </Badge>
                 )}
               </h4>
@@ -152,9 +164,9 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                       </Badge>
                     </>
                 )}
-                      <span>•</span>
-                      <span className="font-medium">Spend:</span>
-                      <span className="font-mono text-gray-800">{ad.spend != null  ? `$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
+                <span>•</span>
+                <span className="font-medium">Spend:</span>
+                <span className="font-mono text-gray-800">{ad.spend != null  ? `R$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -234,7 +246,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                 ].map(({ level, params }) => {
 
                   const isEffective = params && params === ad.trackParams.final;
-const finalParams = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign || ad.trackParams.account || ad.trackParams;
+                  const finalParams = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign || ad.trackParams.account || ad.trackParams;
                   return (
                       <div key={level}>
                         <span className={`font-semibold text-gray-600 flex items-center gap-2 ${isEffective ? 'text-sky-700' : ''}`}>
@@ -277,7 +289,7 @@ const finalParams = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams
 
             {!ad.isValid && (
                 <div className="text-xs space-y-1">
-                  <span className="font-medium text-red-600">Issues:</span>
+                  <span className={`font-medium ${isError ? 'text-red-600' : 'text-yellow-600'}`}>Issues:</span>
                   <ul className="list-disc pl-5 space-y-1">
                     {ad.errorTypes.map((errorType, index) => {
                       const info = getErrorTypeInfo(errorType);
@@ -303,20 +315,35 @@ const CampaignGroupCard = ({ campaignGroup }: { campaignGroup: CampaignGroup }) 
   const allAdsDisabled = campaignGroup.ads.every(ad => !ad.isActive);
 
   const sortedAds = [...campaignGroup.ads].sort((a, b) => {
-    // Invalid ads before valid ones
+    const aIsError = !a.isValid && a.spend > 0;
+    const bIsError = !b.isValid && b.spend > 0;
+
+    const aIsWarning = !a.isValid && (a.spend === 0 || a.spend == null);
+    const bIsWarning = !b.isValid && (b.spend === 0 || b.spend == null);
+
+    // Prioritize active ads over inactive ones
     if (a.isActive !== b.isActive) {
       return a.isActive ? -1 : 1;
     }
-    if (a.isValid !== b.isValid) {
-      return a.isValid ? 1 : -1;
+
+    // Prioritize errors over warnings and valid ads
+    if (aIsError !== bIsError) {
+      return aIsError ? -1 : 1;
     }
 
-    // For invalid ads, sort by number of errors (descending)
-    if (!a.isValid && !b.isValid) {
-      return b.errorTypes.length - a.errorTypes.length;
+    // Prioritize warnings over valid ads
+    if (aIsWarning !== bIsWarning) {
+      return aIsWarning ? -1 : 1;
     }
 
-    return 0; // Maintain original order for ads with same status and error count
+    // For ads of the same category (e.g., both are errors), sort by number of error types
+    if ((aIsError && bIsError) || (aIsWarning && bIsWarning)) {
+      if (a.errorTypes.length !== b.errorTypes.length) {
+        return b.errorTypes.length - a.errorTypes.length;
+      }
+    }
+
+    return 0; // Maintain original order if all else is equal
   });
 
   const displayAds = showOnlyErrors
@@ -454,7 +481,7 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
         adsetId: item.medium.id,
         spend:item.spend,
         isActive: item.isActive,
-          trackParams: {
+        trackParams: {
           final: effectiveTrackParams || item.trackParams, // Use calculated effective params, with a fallback
           ad: item.ad?.trackParams,
           medium: item.medium?.trackParams,
@@ -474,7 +501,8 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
 
     const ads = Object.values(campaign.ads);
     const totalSpend = ads.reduce((sum, ad) => sum + ad.spend, 0);
-    const errorCount = ads.filter(ad => !ad.isValid).length;
+    // An ad is only an error if it's invalid AND has spend.
+    const errorCount = ads.filter(ad => !ad.isValid && ad.spend > 0).length;
     const isCampaignActive = ads.some(ad => ad.isActive);
 
 
@@ -486,12 +514,12 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
       errorCount: errorCount,
       adCount: ads.length,
       totalSpend,
-         isCampaignActive,
+      isCampaignActive,
 
-  };
+    };
   });
 };
-export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: ValidationResultsProps) => {
+export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform, showDisabled, showNonSpend }: ValidationResultsProps) => {
   // Group ads by campaign for each platform
   const facebookCampaigns = Array.isArray(data.facebook) ? processAdsData(data.facebook, 'Facebook') : [];
   const googleCampaigns = Array.isArray(data.google) ? processAdsData(data.google, 'Google') : [];
@@ -500,15 +528,27 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   // Combine all campaign groups
   const allCampaignGroups = [...facebookCampaigns, ...googleCampaigns, ...tiktokCampaigns, ...pinterestCampaigns].sort((a,b)=>{
     if (a.isCampaignActive !== b.isCampaignActive) {
-           return a.isCampaignActive ? -1 : 1;
-         }
+      return a.isCampaignActive ? -1 : 1;
+    }
     if (a.errorCount !== b.errorCount) {
       return b.errorCount - a.errorCount;
+    }
+    if (a.totalSpend !== b.totalSpend) {
+      return b.totalSpend - a.totalSpend;
     }
 
     // If error count is the same, sort alphabetically
     return a.campaignName.localeCompare(b.campaignName)
   });
+
+  // Apply global filters
+  let filteredCampaignGroups = allCampaignGroups;
+  if (!showDisabled) {
+    filteredCampaignGroups = filteredCampaignGroups.filter(group => group.isCampaignActive);
+  }
+  if (!showNonSpend) {
+    filteredCampaignGroups = filteredCampaignGroups.filter(group => group.totalSpend > 0);
+  }
 
   // Calculate total ads and errors across all campaigns
   const totalAds = allCampaignGroups.reduce((sum, group) => sum + group.adCount, 0);
@@ -526,6 +566,17 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   // Count platforms with no data
   const emptyPlatforms = platformData.filter(p => p.isEmpty).length;
   const hasSomeData = totalAds > 0;
+
+  // Prepare filtered data for the export button
+  const getFilteredDataForExport = (): AdsConfigsResult => {
+    const campaignIdsToKeep = new Set(filteredCampaignGroups.map(c => c.campaignId));
+    return {
+      facebook: data.facebook?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
+      google: data.google?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
+      tiktok: data.tiktok?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
+      pinterest: data.pinterest?.filter(item => campaignIdsToKeep.has(item.campaign.id)) || [],
+    };
+  };
 
   // If showing errors only and there are none, display success message
   if (showErrorsOnly && isValid && hasSomeData) {
@@ -644,7 +695,7 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
   return (
       <div className="space-y-4">
         <div className="flex justify-end mb-2">
-          <ExportButton data={data} />
+          <ExportButton data={getFilteredDataForExport()} />
         </div>
         {isValid ? (
             <Alert className="border-green-200 bg-green-50">
@@ -669,7 +720,7 @@ export const ValidationResults = ({ data, showErrorsOnly, groupByPlatform }: Val
         )}
 
         <div className="space-y-4">
-          {allCampaignGroups.map((campaign) => (
+          {filteredCampaignGroups.map((campaign) => (
               <CampaignGroupCard key={`${campaign.platform}-${campaign.campaignId}`} campaignGroup={campaign} />
           ))}
         </div>

@@ -8,12 +8,14 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {ValidationResults} from "@/components/ValidationResults";
 import {UtmDebugger} from "@/components/UtmDebugger";
 import {ValidationSummary} from "@/components/ValidationSummary";
+import {Label} from "@/components/ui/label.tsx";
+import {Switch} from "@/components/ui/switch.tsx";
 import {Dashboard, DashboardSelector} from "@/components/DashboardSelector";
 import {useToast} from "@/hooks/use-toast";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
 import {Badge} from "@/components/ui/badge";
 import {ExportButton} from "@/components/ExportButton";
-import {AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
+import {AdsConfigItem, AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
 import {UtmTemplates} from "@/components/utmTemplates.tsx"; // Add this at the top with other imports
 
 
@@ -56,6 +58,9 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   const [validationData, setValidationData] = useState<ValidationSummaryProps | null>(null);
   const [allValidationData, setAllValidationData] = useState<BulkValidationResult[] | null>(null);
   const [isBulkValidation, setIsBulkValidation] = useState(false);
+  const [showErrorsOnly, setShowErrorsOnly] = useState(false);
+  const [showDisabled, setShowDisabled] = useState(false);
+  const [showNonSpend, setShowNonSpend] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   useEffect(() => {
@@ -426,22 +431,38 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                 <ValidationSummary data={validationData.data} />
 
                 <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="utmparameters">Correct Utms</TabsTrigger>
-                    <TabsTrigger value="debugger">UTM Debugger</TabsTrigger>
-                    <TabsTrigger value="platforms">By Platform</TabsTrigger>
-                  </TabsList>
+                  <div className="flex justify-between items-center mb-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="overview">Overview</TabsTrigger>
+                      <TabsTrigger value="utmparameters">Correct Utms</TabsTrigger>
+                      <TabsTrigger value="platforms">By Platform</TabsTrigger>
+                    </TabsList>
+                    <div className="flex items-center space-x-4 ml-4">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="disabled-toggle" className="whitespace-nowrap">Show disabled</Label>
+                        <Switch
+                            id="disabled-toggle"
+                            checked={showDisabled}
+                            onCheckedChange={setShowDisabled}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="non-spend-toggle" className="whitespace-nowrap">Show non-spend</Label>
+                        <Switch
+                            id="non-spend-toggle"
+                            checked={showNonSpend}
+                            onCheckedChange={setShowNonSpend}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   <TabsContent value="overview" className="space-y-4">
-                    <ValidationResults data={validationData.data} />
+                    <ValidationResults data={validationData.data} showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} />
                   </TabsContent>
 
                   <TabsContent value="utmparameters" className="space-y-4">
                     <UtmTemplates/>
-                  </TabsContent>
-                  <TabsContent value="errors" className="space-y-4">
-                    <ValidationResults data={validationData.data} showErrorsOnly />
                   </TabsContent>
 
                   {/* UTM Debugger disabled for now */}
@@ -456,7 +477,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   </TabsContent>
 
                   <TabsContent value="platforms" className="space-y-4">
-                    <ValidationResults data={validationData.data} groupByPlatform />
+                    <ValidationResults data={validationData.data} groupByPlatform showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -468,16 +489,42 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle>Bulk Validation Report</CardTitle>
-                    <Button
-                        onClick={resetToAccountInput}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                        disabled={isLoadingValidation}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Back
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="bulk-errors-only-toggle">Show only errors</Label>
+                        <Switch
+                            id="bulk-errors-only-toggle"
+                            checked={showErrorsOnly}
+                            onCheckedChange={setShowErrorsOnly}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="bulk-disabled-toggle" className="whitespace-nowrap">Show disabled</Label>
+                        <Switch
+                            id="bulk-disabled-toggle"
+                            checked={showDisabled}
+                            onCheckedChange={setShowDisabled}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="bulk-non-spend-toggle" className="whitespace-nowrap">Show non-spend</Label>
+                        <Switch
+                            id="bulk-non-spend-toggle"
+                            checked={showNonSpend}
+                            onCheckedChange={setShowNonSpend}
+                        />
+                      </div>
+                      <Button
+                          onClick={resetToAccountInput}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2"
+                          disabled={isLoadingValidation}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                      </Button>
+                    </div>
                   </div>
                   <CardDescription>
                     Showing validation results for all {dashboards.length} dashboards.
@@ -491,36 +538,82 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                       </div>
                   )}
                   {allValidationData && (
-                      <Accordion type="multiple" className="w-full space-y-4">
-                        {allValidationData.map((result, index) => {
-                          const errorCount = getTotalErrorCount(result.data);
-                          return (
-                              <AccordionItem value={`item-${index}`} key={result.dashboardId} className="border rounded-lg">
-                                <AccordionTrigger className="px-4 hover:no-underline">
-                                  <div className="flex items-center gap-4">
-                                    {errorCount === 0 ? (
-                                        <CheckCircle className="h-5 w-5 text-green-500" />
-                                    ) : (
-                                        <AlertCircle className="h-5 w-5 text-red-500" />
-                                    )}
-                                    <span className="font-semibold">{result.dashboardName}</span>
-                                    <Badge variant={errorCount === 0 ? "default" : "destructive"}>
-                                      {errorCount} {errorCount === 1 ? 'error' : 'errors'}
-                                    </Badge>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="p-4 border-t">
-                                  <div className="flex justify-end mb-4">
-                                    <ExportButton
-                                        data={result.data}
-                                        dashboardName={result.dashboardName}
-                                    />
-                                  </div>
-                                  <ValidationResults data={result.data} showErrorsOnly />
-                                </AccordionContent>
-                              </AccordionItem>
-                          );
-                        })}
+                      <Accordion type="multiple" className="w-full">
+                        {allValidationData.filter(result => !showErrorsOnly || getTotalErrorCount(result.data) > 0)
+                            .map((result, index) => {
+                              const errorCount = getTotalErrorCount(result.data);
+
+                              // Helper to create filtered data for the export button
+                              const getFilteredDataForBulkExport = (data: AdsConfigsResult): AdsConfigsResult => {
+                                const allItems = Object.values(data).flatMap(platformItems => platformItems || []);
+                                if (allItems.length === 0) {
+                                  return { facebook: [], google: [], tiktok: [], pinterest: [] };
+                                }
+
+                                const campaignMap: Record<string, { items: AdsConfigItem[], totalSpend: number, isActive: boolean, hasErrors: boolean }> = {};
+
+                                allItems.forEach(item => {
+                                  if (!campaignMap[item.campaign.id]) {
+                                    campaignMap[item.campaign.id] = { items: [], totalSpend: 0, isActive: false, hasErrors: false };
+                                  }
+                                  campaignMap[item.campaign.id].items.push(item);
+                                });
+
+                                for (const campaignId in campaignMap) {
+                                  const campaign = campaignMap[campaignId];
+                                  campaign.totalSpend = campaign.items.reduce((sum, ad) => sum + (ad.spend || 0), 0);
+                                  campaign.isActive = campaign.items.some(ad => ad.isActive);
+                                  campaign.hasErrors = campaign.items.some(ad => (!ad.isTrackParamsValid || (ad.messages && ad.messages.length > 0)) && ad.spend > 0);
+                                }
+
+                                let campaignIdsToKeep = Object.keys(campaignMap);
+
+                                if (showErrorsOnly) {
+                                  campaignIdsToKeep = campaignIdsToKeep.filter(id => campaignMap[id].hasErrors);
+                                }
+                                if (!showDisabled) {
+                                  campaignIdsToKeep = campaignIdsToKeep.filter(id => campaignMap[id].isActive);
+                                }
+                                if (!showNonSpend) {
+                                  campaignIdsToKeep = campaignIdsToKeep.filter(id => campaignMap[id].totalSpend > 0);
+                                }
+
+                                const campaignIdsSet = new Set(campaignIdsToKeep);
+
+                                return {
+                                  facebook: data.facebook?.filter(item => campaignIdsSet.has(item.campaign.id)) || [],
+                                  google: data.google?.filter(item => campaignIdsSet.has(item.campaign.id)) || [],
+                                  tiktok: data.tiktok?.filter(item => campaignIdsSet.has(item.campaign.id)) || [],
+                                  pinterest: data.pinterest?.filter(item => campaignIdsSet.has(item.campaign.id)) || [],
+                                };
+                              };
+                              return (
+                                  <AccordionItem value={`item-${index}`} key={result.dashboardId} className="border rounded-lg">
+                                    <AccordionTrigger className="px-4 hover:no-underline">
+                                      <div className="flex items-center gap-4">
+                                        {errorCount === 0 ? (
+                                            <CheckCircle className="h-5 w-5 text-green-500" />
+                                        ) : (
+                                            <AlertCircle className="h-5 w-5 text-red-500" />
+                                        )}
+                                        <span className="font-semibold">{result.dashboardName}</span>
+                                        <Badge variant={errorCount === 0 ? "default" : "destructive"}>
+                                          {errorCount} {errorCount === 1 ? 'error' : 'errors'}
+                                        </Badge>
+                                      </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="p-4 border-t">
+                                      <div className="flex justify-end mb-4">
+                                        <ExportButton
+                                            data={getFilteredDataForBulkExport(result.data)}
+                                            dashboardName={result.dashboardName}
+                                        />
+                                      </div>
+                                      <ValidationResults data={result.data} showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} />
+                                    </AccordionContent>
+                                  </AccordionItem>
+                              );
+                            })}
                       </Accordion>
                   )}
                 </CardContent>
