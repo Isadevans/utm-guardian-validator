@@ -468,7 +468,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   </div>
 
                   <TabsContent value="overview" className="space-y-4">
-                    <ValidationResults data={validationData.data} showErrorsOnly={showErrorsOnly} showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
+                    <ValidationResults data={validationData.data} showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
                   </TabsContent>
 
                   <TabsContent value="utmparameters" className="space-y-4">
