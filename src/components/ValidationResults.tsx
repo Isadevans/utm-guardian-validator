@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye, Search } from "lucide-react";
 import { ExportButton } from "./ExportButton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -109,6 +110,41 @@ const getErrorTypeInfo = (errorType: ValidationErrors) => {
   }
 };
 
+const getEffectiveParamsInfo = (ad: AdItem) => {
+  // Determine which level has the effective parameters
+  let effectiveLevel = 'None';
+  let effectiveParams = '';
+
+  if (ad.trackParams.ad) {
+    effectiveLevel = 'Ad Level';
+    effectiveParams = ad.trackParams.ad;
+  } else if (ad.trackParams.medium) {
+    effectiveLevel = 'Ad Set Level';
+    effectiveParams = ad.trackParams.medium;
+  } else if (ad.trackParams.campaign) {
+    effectiveLevel = 'Campaign Level';
+    effectiveParams = ad.trackParams.campaign;
+  } else if (ad.trackParams.account) {
+    effectiveLevel = 'Account Level';
+    effectiveParams = ad.trackParams.account;
+  }
+
+  // Count how many levels have parameters
+  const levelsWithParams = [
+    ad.trackParams.ad && 'Ad',
+    ad.trackParams.medium && 'Ad Set',
+    ad.trackParams.campaign && 'Campaign',
+    ad.trackParams.account && 'Account'
+  ].filter(Boolean);
+
+  return {
+    effectiveLevel,
+    effectiveParams,
+    hasMultipleLevels: levelsWithParams.length > 1,
+    allLevels: levelsWithParams
+  };
+};
+
 const AdCard = ({ ad }: { ad: AdItem }) => {
   const getRecommendationInfo = () => {
     return {
@@ -119,8 +155,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
     };
   };
 
-  // Check if there are UTMs at the ad, ad set, or campaign level
-  const hasLowerLevelUtms = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign;
+  const effectiveInfo = getEffectiveParamsInfo(ad);
   const recommendationInfo = getRecommendationInfo();
   const isError = !ad.isValid && ad.spend > 0;
   const isWarning = !ad.isValid && (ad.spend === 0 || ad.spend == null);
@@ -133,178 +168,215 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   const cardOpacity = !ad.isActive ? "opacity-80" : "";
 
   return (
-      <Card className={`border-l-4 ${borderColor} mb-3 ${cardOpacity}`}>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <h4 className="font-semibold">{ad.adName}
-                {!ad.isActive && (
-                    <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
-                      Disabled
-                    </Badge>
-                )}
-                {(ad.spend === 0 || ad.spend == null) && ad.isActive && (
-                    <Badge variant="outline" className="ml-2 bg-yellow-200 text-yellow-800">
-                      No Spend
-                    </Badge>
-                )}
-              </h4>
-
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                <span>Ad ID:</span>
-                <Badge variant="outline" className="text-xs font-mono bg-gray-50">
-                  {ad.adId}
-                </Badge>
-                {ad.adsetId && (
-                    <>
-                      <span>•</span>
-                      <span>Ad Set ID:</span>
-                      <Badge variant="outline" className="text-xs font-mono bg-gray-50">
-                        {ad.adsetId}
+      <TooltipProvider>
+        <Card className={`border-l-4 ${borderColor} mb-3 ${cardOpacity}`}>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <h4 className="font-semibold">{ad.adName}
+                  {!ad.isActive && (
+                      <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
+                        Disabled
                       </Badge>
-                    </>
-                )}
-                <span>•</span>
-                <span className="font-medium">Spend:</span>
-                <span className="font-mono text-gray-800">{ad.spend != null  ? `R$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {ad.preview_link && (
-                  <a href={ad.preview_link} target="_blank" rel="noopener noreferrer" title="Preview Ad" className="text-muted-foreground hover:text-primary">
-                    <Eye className="h-4 w-4" />
-                  </a>
-              )}
-              {ad.link && (
-                  <a href={ad.link} target="_blank" rel="noopener noreferrer" title="Destination URL" className="text-muted-foreground hover:text-primary">
-                    <LinkIcon className="h-4 w-4" />
-                  </a>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Separator />
+                  )}
+                  {(ad.spend === 0 || ad.spend == null) && ad.isActive && (
+                      <Badge variant="outline" className="ml-2 bg-yellow-200 text-yellow-800">
+                        No Spend
+                      </Badge>
+                  )}
+                </h4>
 
-          <div className="space-y-2">
-
-            {/* Ad Preview Section */}
-            <div className="text-xs space-y-1">
-              <div className="flex items-center gap-1">
-                <ExternalLink className="h-3 w-3" />
-                <span className="font-medium">Ad Preview:</span>
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>Ad ID:</span>
+                  <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                    {ad.adId}
+                  </Badge>
+                  {ad.adsetId && (
+                      <>
+                        <span>•</span>
+                        <span>Ad Set ID:</span>
+                        <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                          {ad.adsetId}
+                        </Badge>
+                      </>
+                  )}
+                  <span>•</span>
+                  <span className="font-medium">Spend:</span>
+                  <span className="font-mono text-gray-800">{ad.spend != null  ? `R$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
+                </div>
               </div>
-              {ad.preview_link ? (
-                  <div className="mt-1 p-2 bg-gray-50 rounded overflow-hidden">
-                    <a
-                        href={ad.preview_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
-                    >
-                      {ad.preview_link}
+              <div className="flex items-center space-x-2">
+                {ad.preview_link && (
+                    <a href={ad.preview_link} target="_blank" rel="noopener noreferrer" title="Preview Ad" className="text-muted-foreground hover:text-primary">
+                      <Eye className="h-4 w-4" />
                     </a>
-                  </div>
-              ) : (
-                  <div className="mt-1 p-2 bg-gray-50 rounded text-gray-500 italic text-xs">
-                    No ad preview available for this ad
-                  </div>
-              )}
+                )}
+                {ad.link && (
+                    <a href={ad.link} target="_blank" rel="noopener noreferrer" title="Destination URL" className="text-muted-foreground hover:text-primary">
+                      <LinkIcon className="h-4 w-4" />
+                    </a>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Separator />
+
+            <div className="space-y-2">
+
+              {/* Ad Preview Section */}
               <div className="text-xs space-y-1">
                 <div className="flex items-center gap-1">
-                  <LinkIcon className="h-3 w-3" />
-                  <span className="font-medium">Destination URL:</span>
+                  <ExternalLink className="h-3 w-3" />
+                  <span className="font-medium">Ad Preview:</span>
                 </div>
-                <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
-                {ad.link || "No URL provided"}
-              </pre>
-              </div>
-
-            </div>
-
-            <div className="text-xs space-y-3">
-              <span className="font-medium">UTM Parameters Breakdown:</span>
-
-              <div>
-                <div className={`flex items-center gap-2 p-2 rounded-t-md ${!ad.isValid ? 'bg-red-100 border-x border-t border-red-200' : 'bg-green-100 border-x border-t border-green-200'}`}>
-                  <span className="font-semibold">
-                    Final Effective Parameters
-                  </span>
-                  {ad.isValid ? <CheckCircle className="h-4 w-4 text-green-700"/> : <XCircle className="h-4 w-4 text-red-700"/>}
-                </div>
-                <pre className={`p-2 rounded-b-md text-xs break-all whitespace-pre-wrap ${!ad.isValid ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
-                  {ad.trackParams.final || "No UTM parameters found"}
-                </pre>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                {[
-                  { level: 'Ad', params: ad.trackParams.ad },
-                  { level: 'Ad Set', params: ad.trackParams.medium },
-                  { level: 'Campaign', params: ad.trackParams.campaign },
-                  { level: 'Account', params: ad.trackParams.account },
-                ].map(({ level, params }) => {
-
-                  const isEffective = params && params === ad.trackParams.final;
-                  const finalParams = ad.trackParams.ad || ad.trackParams.medium || ad.trackParams.campaign || ad.trackParams.account || ad.trackParams;
-                  return (
-                      <div key={level}>
-                        <span className={`font-semibold text-gray-600 flex items-center gap-2 ${isEffective ? 'text-sky-700' : ''}`}>
-                          {level} Level Parameters:
-                          {isEffective && (
-                              <Badge variant="outline" className="text-xs font-medium bg-sky-100 text-sky-800 border-sky-300">
-                                Effective
-                              </Badge>
-                          )}
-                        </span>
-                        {params ? (
-                            <pre className={`mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap border ${isEffective ? 'border-sky-300 ring-1 ring-sky-200' : 'border-gray-200'}`}>
-                              {params}
-                            </pre>
-                        ) : (
-                            <div className="mt-1 p-2 bg-gray-100 rounded text-xs text-gray-500 italic border border-gray-200">
-                              No parameters set at this level.
-                            </div>
-                        )}
-                      </div>
-                  );
-                })}
-              </div>
-            </div>
-            {ad.isValid && hasLowerLevelUtms && (
-                <Alert className={`border-blue-200 bg-blue-50 ${recommendationInfo.color}`}>
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      {recommendationInfo.icon}
+                {ad.preview_link ? (
+                    <div className="mt-1 p-2 bg-gray-50 rounded overflow-hidden">
+                      <a
+                          href={ad.preview_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                      >
+                        {ad.preview_link}
+                      </a>
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium">{recommendationInfo.title}</h3>
-                      <div className="mt-2 text-xs text-blue-700">
-                        <p>{recommendationInfo.description}</p>
-                      </div>
+                ) : (
+                    <div className="mt-1 p-2 bg-gray-50 rounded text-gray-500 italic text-xs">
+                      No ad preview available for this ad
                     </div>
-                  </div>
-                </Alert>
-            )}
-
-            {!ad.isValid && (
+                )}
                 <div className="text-xs space-y-1">
-                  <span className={`font-medium ${isError ? 'text-red-600' : 'text-yellow-600'}`}>Issues:</span>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {ad.errorTypes.map((errorType, index) => {
-                      const info = getErrorTypeInfo(errorType);
-                      return (
-                          <li key={index} className="text-muted-foreground">
-                            {info.description}
-                          </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="flex items-center gap-1">
+                    <LinkIcon className="h-3 w-3" />
+                    <span className="font-medium">Destination URL:</span>
+                  </div>
+                  <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
+                  {ad.link || "No URL provided"}
+                </pre>
                 </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+
+              </div>
+
+              {/* Simplified UTM Parameters Section */}
+              <div className="text-xs space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">UTM Parameters:</span>
+                  {effectiveInfo.hasMultipleLevels && (
+                      <Tooltip delayDuration={100}>
+                        <TooltipTrigger>
+                          <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700 cursor-help">
+                            Multiple Levels
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <div className="space-y-2">
+                            <p className="font-medium">UTM Parameters found at:</p>
+                            <ul className="text-xs space-y-1">
+                              {effectiveInfo.allLevels.map((level) => (
+                                  <li key={level} className={effectiveInfo.effectiveLevel.includes(level) ? 'font-medium text-blue-700' : 'text-gray-600'}>
+                                    • {level} {effectiveInfo.effectiveLevel.includes(level) && '(Effective)'}
+                                  </li>
+                              ))}
+                            </ul>
+                            <p className="text-xs text-gray-600 mt-2">
+                              Ad level parameters take priority over Ad Set, Campaign, and Account level parameters.
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <div className={`flex items-center gap-2 p-2 rounded-t-md cursor-help ${!ad.isValid ? 'bg-red-100 border-x border-t border-red-200' : 'bg-green-100 border-x border-t border-green-200'}`}>
+                          <span className="font-semibold text-sm">
+                            {effectiveInfo.effectiveParams ? `Effective Parameters (${effectiveInfo.effectiveLevel})` : 'No UTM Parameters'}
+                          </span>
+                          {ad.isValid ? <CheckCircle className="h-4 w-4 text-green-700"/> : <XCircle className="h-4 w-4 text-red-700"/>}
+                          {effectiveInfo.hasMultipleLevels && <Info className="h-3 w-3 text-blue-600" />}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <div className="space-y-2">
+                          <p className="font-medium">Parameter Hierarchy Details:</p>
+                          {[
+                            { level: 'Ad Level', params: ad.trackParams.ad, priority: 1 },
+                            { level: 'Ad Set Level', params: ad.trackParams.medium, priority: 2 },
+                            { level: 'Campaign Level', params: ad.trackParams.campaign, priority: 3 },
+                            { level: 'Account Level', params: ad.trackParams.account, priority: 4 },
+                          ].map(({ level, params, priority }) => (
+                              <div key={level} className="text-xs">
+                                <div className={`flex items-center gap-2 ${params === effectiveInfo.effectiveParams ? 'font-medium text-blue-700' : 'text-gray-600'}`}>
+                                <span className="w-2 h-2 rounded-full bg-gray-300" style={{
+                                  backgroundColor: params === effectiveInfo.effectiveParams ? '#3b82f6' : '#d1d5db'
+                                }} />
+                                  <span>{level} (Priority {priority})</span>
+                                </div>
+                                <div className="ml-4 mt-1">
+                                  {params ? (
+                                      <pre className="text-xs bg-gray-100 p-1 rounded break-all whitespace-pre-wrap max-w-xs">
+                                    {params.length > 100 ? `${params.substring(0, 100)}...` : params}
+                                  </pre>
+                                  ) : (
+                                      <span className="text-gray-400 italic">No parameters</span>
+                                  )}
+                                </div>
+                              </div>
+                          ))}
+                          <p className="text-xs text-gray-600 mt-2 pt-2 border-t">
+                            The parameter with the highest priority (lowest number) is used as the effective parameter.
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <pre className={`p-3 rounded-b-md text-xs break-all whitespace-pre-wrap ${!ad.isValid ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                    {effectiveInfo.effectiveParams || "No UTM parameters found"}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Recommendation for valid ads with lower level UTMs */}
+              {ad.isValid && effectiveInfo.effectiveLevel !== 'Account Level' && effectiveInfo.effectiveParams && (
+                  <Alert className={`border-blue-200 bg-blue-50 ${recommendationInfo.color}`}>
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        {recommendationInfo.icon}
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium">{recommendationInfo.title}</h3>
+                        <div className="mt-2 text-xs text-blue-700">
+                          <p>{recommendationInfo.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Alert>
+              )}
+
+              {/* Error details for invalid ads */}
+              {!ad.isValid && (
+                  <div className="text-xs space-y-1">
+                    <span className={`font-medium ${isError ? 'text-red-600' : 'text-yellow-600'}`}>Issues Found:</span>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {ad.errorTypes.map((errorType, index) => {
+                        const info = getErrorTypeInfo(errorType);
+                        return (
+                            <li key={index} className="text-muted-foreground">
+                              {info.description}
+                            </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TooltipProvider>
   );
 };
 
