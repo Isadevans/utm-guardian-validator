@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./components/Login";
+import { ThemeProvider } from "./components/theme-provider";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => {
     setAccountId(null);
   };
   return (
+    <ThemeProvider defaultTheme="dark" storageKey="theme-utm-validation">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -65,6 +67,7 @@ const App = () => {
           )}
         </TooltipProvider>
       </QueryClientProvider>
+      </ThemeProvider>
   );
 };
 

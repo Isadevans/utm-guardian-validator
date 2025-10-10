@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye, Search } from "lucide-react";
 import { ExportButton } from "./ExportButton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PlatformBadge } from "@/components/ui/platform-badge";
 
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -72,42 +73,42 @@ const getErrorTypeInfo = (errorType: ValidationErrors) => {
         title: 'Missing UTM',
         description: 'The url_tags field is absent or empty',
         icon: <AlertCircle className="h-4 w-4" />,
-        color: 'bg-yellow-100 border-yellow-300 text-yellow-800'
+        color: 'bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-400'
       };
     case ValidationErrors.INCORRECT_UTM_FORMAT:
       return {
         title: 'Invalid Format',
         description: 'UTM parameters do not match required pattern',
         icon: <XCircle className="h-4 w-4" />,
-        color: 'bg-red-100 border-red-300 text-red-800'
+        color: 'bg-destructive/10 border-destructive text-destructive'
       };
     case ValidationErrors.UTM_IN_LINK_URL:
       return {
         title: 'UTM in URL',
         description: 'UTM parameters found in destination URL (should be in url_tags)',
         icon: <ExternalLink className="h-4 w-4" />,
-        color: 'bg-orange-100 border-orange-300 text-orange-800'
+        color: 'bg-orange-500/10 border-orange-500 text-orange-700 dark:text-orange-400'
       };
     case ValidationErrors.CAMPAIGN_WITH_TRACKING_PARAMS:
       return {
         title: 'Campaign UTMs',
         description: 'Tracking parameters found at campaign level (should be at ad level)',
         icon: <AlertTriangle className="h-4 w-4" />,
-        color: 'bg-purple-100 border-purple-300 text-purple-800'
+        color: 'bg-purple-500/10 border-purple-500 text-purple-700 dark:text-purple-400'
       };
     case ValidationErrors.ADGROUP_WITH_TRACKING_PARAMS:
       return {
         title: 'Ad Group UTMs',
         description: 'Tracking parameters found at ad group level (should be at ad level)',
         icon: <Info className="h-4 w-4" />,
-        color: 'bg-blue-100 border-blue-300 text-blue-800'
+        color: 'bg-accent border-accent-foreground/20 text-accent-foreground'
       };
     default:
       return {
         title: 'Unknown Error',
         description: 'Unknown validation error',
         icon: <AlertCircle className="h-4 w-4" />,
-        color: 'bg-gray-100 border-gray-300 text-gray-800'
+        color: 'bg-muted border-border text-muted-foreground'
       };
   }
 };
@@ -153,7 +154,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
       title: 'Recommendation',
       description: 'For better consistency and management, it is recommended to set UTM parameters at the account level using a tracking template instead of at the ad, ad set, or campaign level.',
       icon: <Info className="h-4 w-4" />,
-      color: 'bg-blue-100 border-blue-300 text-blue-800'
+      color: 'bg-accent/10 border-accent text-accent-foreground'
     };
   };
 
@@ -165,9 +166,9 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
   const borderColor = ad.isValid
       ? "border-l-green-500"
       : isError
-          ? "border-l-red-500"
+          ? "border-l-destructive"
           : "border-l-yellow-500";
-  const cardOpacity = !ad.isActive ? "opacity-80" : "";
+  const cardOpacity = !ad.isActive ? "opacity-60" : "";
 
   return (
       <TooltipProvider>
@@ -177,12 +178,12 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
               <div>
                 <h4 className="font-semibold">{ad.adName}
                   {!ad.isActive && (
-                      <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
+                      <Badge variant="outline" className="ml-2 bg-muted text-muted-foreground">
                         Disabled
                       </Badge>
                   )}
                   {(ad.spend === 0 || ad.spend == null) && ad.isActive && (
-                      <Badge variant="outline" className="ml-2 bg-yellow-200 text-yellow-800">
+                      <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
                         No Spend
                       </Badge>
                   )}
@@ -190,21 +191,21 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
 
                 <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                   <span>Ad ID:</span>
-                  <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                  <Badge variant="outline" className="text-xs font-mono bg-muted/50">
                     {ad.adId}
                   </Badge>
                   {ad.adsetId && (
                       <>
                         <span>•</span>
                         <span>Ad Set ID:</span>
-                        <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                        <Badge variant="outline" className="text-xs font-mono bg-muted/50">
                           {ad.adsetId}
                         </Badge>
                       </>
                   )}
                   <span>•</span>
                   <span className="font-medium">Spend:</span>
-                  <span className="font-mono text-gray-800">{ad.spend != null  ? `R$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
+                  <span className="font-mono text-foreground">{ad.spend != null  ? `R$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -233,18 +234,18 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                   <span className="font-medium">Ad Preview:</span>
                 </div>
                 {ad.preview_link ? (
-                    <div className="mt-1 p-2 bg-gray-50 rounded overflow-hidden">
+                    <div className="mt-1 p-2 bg-muted/50 rounded overflow-hidden">
                       <a
                           href={ad.preview_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                          className="text-primary hover:underline flex items-center gap-1"
                       >
                         {ad.preview_link}
                       </a>
                     </div>
                 ) : (
-                    <div className="mt-1 p-2 bg-gray-50 rounded text-gray-500 italic text-xs">
+                    <div className="mt-1 p-2 bg-muted/50 rounded text-muted-foreground italic text-xs">
                       No ad preview available for this ad
                     </div>
                 )}
@@ -253,7 +254,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                     <LinkIcon className="h-3 w-3" />
                     <span className="font-medium">Destination URL:</span>
                   </div>
-                  <pre className="mt-1 p-2 bg-gray-50 rounded text-xs break-all whitespace-pre-wrap">
+                  <pre className="mt-1 p-2 bg-muted/50 rounded text-xs break-all whitespace-pre-wrap">
                   {ad.link || "No URL provided"}
                 </pre>
                 </div>
@@ -267,7 +268,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                   {effectiveInfo.hasMultipleLevels && (
                       <Tooltip delayDuration={100}>
                         <TooltipTrigger>
-                          <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700 cursor-help">
+                          <Badge variant="outline" className="text-xs bg-accent/50 border-accent text-accent-foreground cursor-help">
                             Multiple Levels
                           </Badge>
                         </TooltipTrigger>
@@ -276,12 +277,12 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                             <p className="font-medium">UTM Parameters found at:</p>
                             <ul className="text-xs space-y-1">
                               {effectiveInfo.allLevels.map((level) => (
-                                  <li key={level} className={effectiveInfo.effectiveLevel.includes(level) ? 'font-medium text-blue-700' : 'text-gray-600'}>
+                                  <li key={level} className={effectiveInfo.effectiveLevel.includes(level) ? 'font-medium text-primary' : 'text-muted-foreground'}>
                                     • {level} {effectiveInfo.effectiveLevel.includes(level) && '(Effective)'}
                                   </li>
                               ))}
                             </ul>
-                            <p className="text-xs text-gray-600 mt-2">
+                            <p className="text-xs text-muted-foreground mt-2">
                               Ad level parameters take priority over Ad Set, Campaign, and Account level parameters.
                             </p>
                           </div>
@@ -294,12 +295,12 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                   <div className="flex items-center gap-2 mb-2">
                     <Tooltip>
                       <TooltipTrigger>
-                        <div className={`flex items-center gap-2 p-2 rounded-t-md cursor-help ${!ad.isValid ? 'bg-red-100 border-x border-t border-red-200' : 'bg-green-100 border-x border-t border-green-200'}`}>
+                        <div className={`flex items-center gap-2 p-2 rounded-t-md cursor-help ${!ad.isValid ? 'bg-destructive/10 border-x border-t border-destructive' : 'bg-green-500/10 border-x border-t border-green-500'}`}>
                           <span className="font-semibold text-sm">
                             {effectiveInfo.effectiveParams ? `Effective Parameters (${effectiveInfo.effectiveLevel})` : 'No UTM Parameters'}
                           </span>
-                          {ad.isValid ? <CheckCircle className="h-4 w-4 text-green-700"/> : <XCircle className="h-4 w-4 text-red-700"/>}
-                          {effectiveInfo.hasMultipleLevels && <Info className="h-3 w-3 text-blue-600" />}
+                          {ad.isValid ? <CheckCircle className="h-4 w-4 text-green-500"/> : <XCircle className="h-4 w-4 text-destructive"/>}
+                          {effectiveInfo.hasMultipleLevels && <Info className="h-3 w-3 text-accent-foreground" />}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-md">
@@ -312,31 +313,31 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                             { level: 'Account Level', params: ad.trackParams.account, priority: 4 },
                           ].map(({ level, params, priority }) => (
                               <div key={level} className="text-xs">
-                                <div className={`flex items-center gap-2 ${params === effectiveInfo.effectiveParams ? 'font-medium text-blue-700' : 'text-gray-600'}`}>
-                                <span className="w-2 h-2 rounded-full bg-gray-300" style={{
-                                  backgroundColor: params === effectiveInfo.effectiveParams ? '#3b82f6' : '#d1d5db'
+                                <div className={`flex items-center gap-2 ${params === effectiveInfo.effectiveParams ? 'font-medium text-primary' : 'text-muted-foreground'}`}>
+                                <span className="w-2 h-2 rounded-full" style={{
+                                  backgroundColor: params === effectiveInfo.effectiveParams ? 'hsl(var(--primary))' : 'hsl(var(--muted))'
                                 }} />
                                   <span>{level} (Priority {priority})</span>
                                 </div>
                                 <div className="ml-4 mt-1">
                                   {params ? (
-                                      <pre className="text-xs bg-gray-100 p-1 rounded break-all whitespace-pre-wrap max-w-xs">
+                                      <pre className="text-xs bg-muted/50 p-1 rounded break-all whitespace-pre-wrap max-w-xs">
                                     {params.length > 100 ? `${params.substring(0, 100)}...` : params}
                                   </pre>
                                   ) : (
-                                      <span className="text-gray-400 italic">No parameters</span>
+                                      <span className="text-muted-foreground italic">No parameters</span>
                                   )}
                                 </div>
                               </div>
                           ))}
-                          <p className="text-xs text-gray-600 mt-2 pt-2 border-t">
+                          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
                             The parameter with the highest priority (lowest number) is used as the effective parameter.
                           </p>
                         </div>
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <pre className={`p-3 rounded-b-md text-xs break-all whitespace-pre-wrap ${!ad.isValid ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
+                  <pre className={`p-3 rounded-b-md text-xs break-all whitespace-pre-wrap ${!ad.isValid ? 'bg-destructive/10 border border-destructive' : 'bg-green-500/10 border border-green-500'}`}>
                     {effectiveInfo.effectiveParams || "No UTM parameters found"}
                   </pre>
                 </div>
@@ -344,14 +345,14 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
 
               {/* Recommendation for valid ads with lower level UTMs */}
               {ad.isValid && effectiveInfo.effectiveLevel !== 'Account Level' && effectiveInfo.effectiveParams && (
-                  <Alert className={`border-blue-200 bg-blue-50 ${recommendationInfo.color}`}>
+                  <Alert className={recommendationInfo.color}>
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
                         {recommendationInfo.icon}
                       </div>
                       <div className="ml-3">
                         <h3 className="text-sm font-medium">{recommendationInfo.title}</h3>
-                        <div className="mt-2 text-xs text-blue-700">
+                        <div className="mt-2 text-xs text-accent-foreground">
                           <p>{recommendationInfo.description}</p>
                         </div>
                       </div>
@@ -362,7 +363,7 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
               {/* Error details for invalid ads */}
               {!ad.isValid && (
                   <div className="text-xs space-y-1">
-                    <span className={`font-medium ${isError ? 'text-red-600' : 'text-yellow-600'}`}>Issues Found:</span>
+                    <span className={`font-medium ${isError ? 'text-destructive' : 'text-yellow-700 dark:text-yellow-400'}`}>Issues Found:</span>
                     <ul className="list-disc pl-5 space-y-1">
                       {ad.errorTypes.map((errorType, index) => {
                         const info = getErrorTypeInfo(errorType);
@@ -429,16 +430,20 @@ const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
       <Card className="mb-4">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="w-full">
-            <CardHeader className="pb-3 cursor-pointer hover:bg-slate-50">
+            <CardHeader className="pb-3 cursor-pointer hover:bg-accent/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   {isOpen ? <ChevronDown className="h-5 w-5 mr-2" /> : <ChevronRight className="h-5 w-5 mr-2" />}
                   <div>
                     <CardTitle className="text-md font-medium flex items-center">
                       {campaignGroup.campaignName}
-                      <div className={`w-3 h-3 rounded-full ml-2 ${getPlatformColor(campaignGroup.platform)}`} />
+                      <PlatformBadge 
+                        platform={campaignGroup.platform} 
+                        className="ml-2 px-2 py-0.5" 
+                        iconClassName="w-4 h-4"
+                      />
                       {allAdsInOriginalGroupDisabled && (
-                          <Badge variant="outline" className="ml-2 bg-gray-200 text-gray-600">
+                          <Badge variant="outline" className="ml-2 bg-muted text-muted-foreground">
                             Disabled
                           </Badge>
                       )}
@@ -447,14 +452,14 @@ const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
                       <span>{campaignGroup.platform}</span>
                       <span>•</span>
                       <span className="font-medium">Campaign ID:</span>
-                      <Badge variant="outline" className="text-xs font-mono bg-gray-50">
+                      <Badge variant="outline" className="text-xs font-mono bg-muted/50">
                         {campaignGroup.campaignId}
                       </Badge>
                       <span>•</span>
                       <span>{campaignGroup.adCount} ads</span>
                       <span>•</span>
                       <span className="font-medium">Spend:</span>
-                      <span className="font-mono text-gray-800">${campaignGroup.totalSpend?.toFixed(2) || 0}</span>
+                      <span className="font-mono text-foreground">${campaignGroup.totalSpend?.toFixed(2) || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -464,7 +469,7 @@ const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
                         {campaignGroup.errorCount} {campaignGroup.errorCount === 1 ? 'error' : 'errors'}
                       </Badge>
                   ) : (
-                      <Badge className="bg-green-100 text-green-800">
+                      <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         All Valid
                       </Badge>
@@ -500,15 +505,6 @@ const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
   );
 };
 
-const getPlatformColor = (platform: string): string => {
-  switch (platform.toLowerCase()) {
-    case 'facebook': return 'bg-blue-500';
-    case 'google': return 'bg-red-500';
-    case 'tiktok': return 'bg-gray-900';
-    case 'pinterest': return 'bg-red-600';
-    default: return 'bg-gray-500';
-  }
-};
 
 const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup[] => {
   // First group items by campaign
@@ -712,7 +708,7 @@ export const ValidationResults = ({
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <div className="text-center space-y-2">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
               <h3 className="text-lg font-medium">No Ads Available</h3>
               <p className="text-muted-foreground">
                 {emptyPlatforms === platformData.length
@@ -791,14 +787,14 @@ export const ValidationResults = ({
                   <Card key={platform.name}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${getPlatformColor(platform.name)}`} />
+                        <PlatformBadge platform={platform.name} />
                         {platform.name}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {platform.isEmpty ? (
                           <div className="text-center py-4">
-                            <Badge variant="outline" className="bg-gray-100">No Data Available</Badge>
+                            <Badge variant="outline" className="bg-muted">No Data Available</Badge>
                           </div>
                       ) : (
                           <div className="space-y-2">
@@ -844,7 +840,7 @@ export const ValidationResults = ({
                       ))
                   ) : (
                       <div className="text-center py-8 text-muted-foreground">
-                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         No data available for {platform.name} matching the current filters.
                       </div>
                   )}
@@ -861,9 +857,9 @@ export const ValidationResults = ({
           <ExportButton data={getFilteredDataForExport()} />
         </div>
         {isValid ? (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-green-500 bg-green-500/10">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <AlertDescription className="text-green-700 dark:text-green-400">
                 All UTM configurations are valid! {totalAds} ads checked with no issues.
               </AlertDescription>
             </Alert>
@@ -871,9 +867,9 @@ export const ValidationResults = ({
 
         {/* Empty platforms summary */}
         {emptyPlatforms > 0 && (
-            <Alert className="border-gray-200 bg-gray-50">
-              <Info className="h-4 w-4 text-gray-600" />
-              <AlertDescription className="text-gray-800">
+            <Alert className="border-border bg-muted/50">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <AlertDescription className="text-foreground">
                 {emptyPlatforms === 1
                     ? `One platform has no ads available.`
                     : `${emptyPlatforms} platforms have no ads available.`}
@@ -891,7 +887,7 @@ export const ValidationResults = ({
           ))}
           {searchedCampaignGroups.length === 0 && (
               <div className="text-center py-10 text-muted-foreground">
-                <Search className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
                 <p>No results found for your search.</p>
               </div>
           )}

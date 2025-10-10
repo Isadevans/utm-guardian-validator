@@ -1,7 +1,8 @@
-import { Building2, Calendar, Users, Zap } from "lucide-react";
+import { Building2, Calendar, Users, Zap, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PlatformBadge } from "@/components/ui/platform-badge";
 
 export interface Dashboard {
   id: number;
@@ -24,9 +25,10 @@ interface DashboardSelectorProps {
   dashboards: Dashboard[];
   onSelectDashboard: (dashboardId: number) => void;
   onSelectAll: () => void;
+  onBack?: () => void;
 }
 
-export const DashboardSelector = ({ dashboards, onSelectDashboard, onSelectAll }: DashboardSelectorProps) => {
+export const DashboardSelector = ({ dashboards, onSelectDashboard, onSelectAll, onBack }: DashboardSelectorProps) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -35,29 +37,22 @@ export const DashboardSelector = ({ dashboards, onSelectDashboard, onSelectAll }
     });
   };
 
-  const getIntegrationIcon = (integration: string) => {
-    switch (integration.toLowerCase()) {
-      case 'facebook':
-        return '📘';
-      case 'google':
-        return '🔍';
-      case 'tiktok':
-        return '🎵';
-      case 'pinterest':
-        return '📌';
-      default:
-        return '🔗';
-    }
-  };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Select Dashboard</h2>
-          <p className="text-gray-600">Choose a dashboard to validate UTM configurations</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <Button onClick={onBack} variant="outline" size="icon" className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Select Dashboard</h2>
+            <p className="text-sm text-muted-foreground">Choose a dashboard to validate UTM configurations</p>
+          </div>
         </div>
-        <Button onClick={onSelectAll} variant="outline" className="flex items-center gap-2">
+        <Button onClick={onSelectAll} variant="outline" className="flex items-center gap-2 sm:shrink-0">
           <Zap className="h-4 w-4" />
           Validate All Dashboards
         </Button>
@@ -87,23 +82,27 @@ export const DashboardSelector = ({ dashboards, onSelectDashboard, onSelectAll }
             </CardHeader>
             
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 Created: {formatDate(dashboard.createdAt)}
               </div>
               
               <div className="space-y-2">
-                <div className="text-sm font-medium text-gray-700">Integrations:</div>
+                <div className="text-sm font-medium text-foreground">Integrations:</div>
                 <div className="flex flex-wrap gap-1">
                   {dashboard.integrations.map((integration) => (
-                    <Badge key={integration} variant="outline" className="text-xs">
-                      {getIntegrationIcon(integration)} {integration}
-                    </Badge>
+                    <PlatformBadge 
+                      key={integration}
+                      platform={integration}
+                      showLabel
+                      className="text-xs gap-1.5 px-2 py-1 border-0"
+                      iconClassName="w-4 h-4"
+                    />
                   ))}
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                 <div>CPA View: {dashboard.cpaView}</div>
                 <div>Show: {dashboard.showType}</div>
               </div>

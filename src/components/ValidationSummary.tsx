@@ -44,21 +44,21 @@ export const ValidationSummary = ({ data }: ValidationSummaryProps) => {
   return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-7xl mx-auto">
         {/* Overall Status */}
-        <Card className={`${is_valid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+        <Card className={`${is_valid ? 'border-green-500 bg-green-500/10' : 'border-destructive bg-destructive/10'}`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overall Status</CardTitle>
             {is_valid ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-green-500" />
             ) : (
-                <XCircle className="h-4 w-4 text-red-600" />
+                <XCircle className="h-4 w-4 text-destructive" />
             )}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {is_valid ? (
-                  <span className="text-green-600">Valid</span>
+                  <span className="text-green-500">Valid</span>
               ) : (
-                  <span className="text-red-600">Issues Found</span>
+                  <span className="text-destructive">Issues Found</span>
               )}
             </div>
             <p className="text-xs text-muted-foreground">

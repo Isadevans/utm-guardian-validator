@@ -45,14 +45,14 @@ const UtmComparison = ({ found, expected }: { found: string; expected: string })
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label className="text-red-600 font-medium">Found UTMs</Label>
-            <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
+            <Label className="text-destructive font-medium">Found UTMs</Label>
+            <div className="mt-2 p-3 bg-destructive/10 rounded-lg border border-destructive">
               <pre className="text-xs break-all whitespace-pre-wrap">{found}</pre>
             </div>
           </div>
           <div>
-            <Label className="text-green-600 font-medium">Expected UTMs</Label>
-            <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+            <Label className="text-green-600 dark:text-green-400 font-medium">Expected UTMs</Label>
+            <div className="mt-2 p-3 bg-green-500/10 rounded-lg border border-green-500">
               <pre className="text-xs break-all whitespace-pre-wrap">{expected}</pre>
             </div>
           </div>
@@ -74,15 +74,15 @@ const UtmComparison = ({ found, expected }: { found: string; expected: string })
                   <div key={key} className="grid grid-cols-3 gap-2 items-center text-sm">
                     <div className="font-mono font-medium">{key}:</div>
                     <div className={`p-2 rounded text-xs break-all ${
-                        isMatch ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        isMatch ? 'bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-destructive/10 text-destructive'
                     }`}>
                       {foundValue || '(missing)'}
                     </div>
                     <div className="flex items-center gap-2">
                       {isMatch ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <CheckCircle className="h-4 w-4 text-green-500" />
                       ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
+                          <XCircle className="h-4 w-4 text-destructive" />
                       )}
                       <span className="text-xs text-muted-foreground">
                     {isMatch ? 'Match' : 'Mismatch'}
@@ -155,8 +155,8 @@ const UtmTester = ({ requiredPattern }: { requiredPattern: string }) => {
         {testResult && (
             <div className={`p-3 rounded-lg border ${
                 testResult.isValid
-                    ? 'bg-green-50 border-green-200 text-green-800'
-                    : 'bg-red-50 border-red-200 text-red-800'
+                    ? 'bg-green-500/10 border-green-500 text-green-700 dark:text-green-400'
+                    : 'bg-destructive/10 border-destructive text-destructive'
             }`}>
               {testResult.message}
             </div>
@@ -172,7 +172,7 @@ const UtmTester = ({ requiredPattern }: { requiredPattern: string }) => {
               Copy
             </Button>
           </div>
-          <div className="p-3 bg-gray-50 rounded-lg border">
+          <div className="p-3 bg-muted/50 rounded-lg border">
             <pre className="text-xs break-all whitespace-pre-wrap">{requiredPattern}</pre>
           </div>
         </div>
