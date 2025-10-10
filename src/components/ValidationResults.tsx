@@ -57,10 +57,12 @@ interface CampaignGroup {
 
 interface ValidationResultsProps {
   data: AdsConfigsResult;
+  showNoUtmsOnly?: boolean;
   groupByPlatform?: boolean;
   showDisabled?: boolean;
   showNonSpend?: boolean;
   searchQuery?: string;
+  showValidsAds?: boolean; // nova prop
 }
 
 const getErrorTypeInfo = (errorType: ValidationErrors) => {
@@ -582,7 +584,15 @@ const processAdsData = (items: AdsConfigItem[], platform: string): CampaignGroup
     };
   });
 };
-export const ValidationResults = ({ data, groupByPlatform, showDisabled = false, showNonSpend = false, searchQuery = "" }: ValidationResultsProps) => {
+export const ValidationResults = ({
+  data,
+  groupByPlatform,
+  showDisabled = false,
+  showNonSpend = false,
+  searchQuery = "",
+  showNoUtmsOnly = false,
+  showValidsAds = false // default: false
+}: ValidationResultsProps) => {
   // Group ads by campaign for each platform
   const facebookCampaigns = Array.isArray(data.facebook) ? processAdsData(data.facebook, 'Facebook') : [];
   const googleCampaigns = Array.isArray(data.google) ? processAdsData(data.google, 'Google') : [];
@@ -612,6 +622,21 @@ export const ValidationResults = ({ data, groupByPlatform, showDisabled = false,
             return false;
           }
           if (!showNonSpend && (ad.spend === 0 || ad.spend == null)) {
+            return false;
+          }
+          if (showNoUtmsOnly) {
+            const hasAnyUtms =
+                ad.trackParams.ad ||
+                ad.trackParams.medium ||
+                ad.trackParams.campaign ||
+                ad.trackParams.account;
+            if (hasAnyUtms) return false;
+          }
+          // NOVO: filtro para mostrar só válidos ou só inválidos
+          if (!showValidsAds && ad.isValid) {
+            return false;
+          }
+          if (showValidsAds && !ad.isValid) {
             return false;
           }
           return true;
@@ -709,6 +734,9 @@ export const ValidationResults = ({ data, groupByPlatform, showDisabled = false,
             const filteredAds = group.ads.filter(ad => {
               if (!showDisabled && !ad.isActive) return false;
               if (!showNonSpend && (ad.spend === 0 || ad.spend == null)) return false;
+              // NOVO: filtro para mostrar só válidos ou só inválidos
+              if (!showValidsAds && ad.isValid) return false;
+              if (showValidsAds && !ad.isValid) return false;
               return true;
             });
             return { ...group, ads: filteredAds, adCount: filteredAds.length };

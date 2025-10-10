@@ -60,7 +60,9 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   const [isBulkValidation, setIsBulkValidation] = useState(false);
   const [showErrorsOnly, setShowErrorsOnly] = useState(false);
   const [showDisabled, setShowDisabled] = useState(false);
+  const [showNoUtmsOnly, setShowNoUtmsOnly] = useState(false);
   const [showNonSpend, setShowNonSpend] = useState(false);
+  const [showValidsAds, setShowValidsAds] = useState(false); // Novo estado
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -464,11 +466,33 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                             onCheckedChange={setShowNonSpend}
                         />
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="no-utms-toggle" className="whitespace-nowrap">Sem UTM</Label>
+                        <Switch
+                            id="no-utms-toggle"
+                            checked={showNoUtmsOnly}
+                            onCheckedChange={setShowNoUtmsOnly}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="valid-ads-toggle" className="whitespace-nowrap">Mostrar válidos</Label>
+                        <Switch
+                            id="valid-ads-toggle"
+                            checked={showValidsAds}
+                            onCheckedChange={setShowValidsAds}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <TabsContent value="overview" className="space-y-4">
-                    <ValidationResults data={validationData.data} showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
+                    <ValidationResults
+                      data={validationData.data}
+                      showDisabled={showDisabled}
+                      showNonSpend={showNonSpend}
+                      searchQuery={searchQuery}
+                      showValidsAds={showValidsAds}
+                    />
                   </TabsContent>
 
                   <TabsContent value="utmparameters" className="space-y-4">
@@ -487,7 +511,15 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   </TabsContent>
 
                   <TabsContent value="platforms" className="space-y-4">
-                    <ValidationResults data={validationData.data} groupByPlatform  showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
+                    <ValidationResults
+                      data={validationData.data}
+                      groupByPlatform
+                      showDisabled={showDisabled}
+                      showNonSpend={showNonSpend}
+                      searchQuery={searchQuery}
+                      showNoUtmsOnly={showNoUtmsOnly}
+                      showValidsAds={showValidsAds}
+                    />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -523,6 +555,14 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                             id="bulk-non-spend-toggle"
                             checked={showNonSpend}
                             onCheckedChange={setShowNonSpend}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="bulk-valid-ads-toggle" className="whitespace-nowrap">Mostrar válidos</Label>
+                        <Switch
+                            id="bulk-valid-ads-toggle"
+                            checked={showValidsAds}
+                            onCheckedChange={setShowValidsAds}
                         />
                       </div>
                       <Button
@@ -617,7 +657,14 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                                             dashboardName={result.dashboardName}
                                         />
                                       </div>
-                                      <ValidationResults data={result.data} showDisabled={showDisabled} showNonSpend={showNonSpend} searchQuery={searchQuery} />
+                                      <ValidationResults
+                                        data={result.data}
+                                        showDisabled={showDisabled}
+                                        showNonSpend={showNonSpend}
+                                        searchQuery={searchQuery}
+                                        showNoUtmsOnly={showNoUtmsOnly}
+                                        showValidsAds={showValidsAds}
+                                      />
                                     </AccordionContent>
                                   </AccordionItem>
                               );
@@ -633,3 +680,4 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
 };
 
 export default Index;
+
