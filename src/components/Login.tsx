@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Lock, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ModeToggle } from "@/components/mode-toggle";
 
 interface LoginProps {
     onLogin: (token: string, accountId: string) => void;
@@ -80,13 +81,16 @@ const Login = ({ onLogin }: LoginProps) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
-            <Card className="w-full max-w-md">
+        <div className="min-h-screen bg-background flex items-center justify-center p-6 relative">
+            <div className="absolute top-6 right-6">
+                <ModeToggle />
+            </div>
+            <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="text-center">
-                    <div className="mx-auto bg-blue-100 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                        <Lock className="h-8 w-8 text-blue-600" />
+                    <div className="mx-auto bg-muted p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+                        <Lock className="h-8 w-8 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl">UTM Validation Center</CardTitle>
+                    <CardTitle className="text-2xl">UTM Checker</CardTitle>
                     <CardDescription>
                         {storedPassword
                             ? "Enter your Account ID to continue"
@@ -113,7 +117,9 @@ const Login = ({ onLogin }: LoginProps) => {
                             type="text"
                             placeholder="Enter Account ID (e.g., 4560)"
                             value={accountId}
+                            autoFocus
                             onChange={(e) => setAccountId(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAuthenticate()}
                         />
                         <Button
                             className="w-full"

@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {AlertCircle, ArrowLeft, CheckCircle, Loader2, Search} from "lucide-react";
+import {AlertCircle, ArrowLeft, CheckCircle, Loader2, Search, LogOut} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
@@ -16,7 +16,9 @@ import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/co
 import {Badge} from "@/components/ui/badge";
 import {ExportButton} from "@/components/ExportButton";
 import {AdsConfigItem, AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
-import {UtmTemplates} from "@/components/utmTemplates.tsx"; // Add this at the top with other imports
+import {UtmTemplates} from "@/components/utmTemplates.tsx";
+import {ModeToggle} from "@/components/mode-toggle.tsx";
+import {Separator} from "@/components/ui/separator";
 
 
 enum ValidationErrors {
@@ -62,7 +64,7 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
   const [showDisabled, setShowDisabled] = useState(false);
   const [showNoUtmsOnly, setShowNoUtmsOnly] = useState(false);
   const [showNonSpend, setShowNonSpend] = useState(false);
-  const [showValidsAds, setShowValidsAds] = useState(false); // Novo estado
+  const [showValidsAds, setShowValidsAds] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -300,110 +302,105 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
     return allErrors;
   };
   return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex justify-end mb-4">
-            <div className="flex items-center gap-2 bg-white/80 px-3 py-1 rounded-full shadow-sm">
-              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-700">Logged in as Account {accountId}</span>
-              <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (onLogout) onLogout();
-                  }}
-              >
-                Logout
-              </Button>            </div>
-          </div>
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-gray-900">UTM Validation Center</h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Validate UTM configurations across all advertising platforms to ensure proper tracking and attribution
-            </p>
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <div className="flex items-center justify-between px-6 py-3">
+              <h1 className="text-xl font-bold text-foreground">UTM Checker</h1>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
+                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-foreground">Account {accountId}</span>
+                </div>
+                <Separator orientation="vertical" className="h-6" />
+                <ModeToggle />
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      if (onLogout) onLogout();
+                    }}
+                    title="Logout"
+                    className="h-9 w-9"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
+          <div className="p-6 space-y-8">
           {/* Account Input Section */}
           {dashboards.length === 0 && !selectedDashboard && !isBulkValidation && (
-              <Card className="max-w-2xl mx-auto">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Search className="h-5 w-5" />
-                    Account Login
-                  </CardTitle>
-                  <CardDescription>
-                    Enter your Account ID to fetch your dashboards
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    <Input
-                        placeholder="Enter Account ID (e.g., 4557)"
-                        value={accountId}
-                        onChange={(e) => setAccountId(e.target.value)}
-                        className="flex-1"
-                        disabled={isLoadingDashboards}
-                    />
-                    <Button
-                        onClick={fetchDashboards}
-                        disabled={isLoadingDashboards || !accountId.trim()}
-                        className="px-8"
-                    >
-                      {isLoadingDashboards ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Loading...
-                          </>
-                      ) : (
-                          <>
-                            <Search className="mr-2 h-4 w-4" />
-                            Fetch Dashboards
-                          </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="max-w-3xl mx-auto space-y-4">
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-semibold text-foreground">Get Started</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your Account ID to load your dashboards and validate UTM configurations
+                  </p>
+                </div>
+                <Card className="border-2">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Input
+                          placeholder="Account ID (e.g., 4557)"
+                          value={accountId}
+                          onChange={(e) => setAccountId(e.target.value)}
+                          className="flex-1 h-11"
+                          disabled={isLoadingDashboards}
+                      />
+                      <Button
+                          onClick={fetchDashboards}
+                          disabled={isLoadingDashboards || !accountId.trim()}
+                          className="h-11 px-8 sm:w-auto w-full"
+                          size="lg"
+                      >
+                        {isLoadingDashboards ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Loading...
+                            </>
+                        ) : (
+                            <>
+                              <Search className="mr-2 h-4 w-4" />
+                              Fetch Dashboards
+                            </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
           )}
 
           {/* Dashboard Selection */}
           {dashboards.length > 0 && !selectedDashboard && !isBulkValidation && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center max-w-7xl mx-auto">
-                  <Button
-                      onClick={resetToAccountInput}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Account Input
-                  </Button>
-                </div>
                 <DashboardSelector
                     dashboards={dashboards}
                     onSelectDashboard={handleSelectDashboard}
                     onSelectAll={handleSelectAllDashboards}
+                    onBack={resetToAccountInput}
                 />
-              </div>
           )}
 
           {/* Current Dashboard Info */}
           {selectedDashboard && (
-              <Card className="max-w-4xl mx-auto">
+              <Card>
                 <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2 text-xl">
                         {isLoadingValidation ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         ) : (
-                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <CheckCircle className="h-5 w-5 text-green-500" />
                         )}
-                        {isLoadingValidation ? 'Validating' : 'Dashboard'}: {selectedDashboard.name}
+                        {selectedDashboard.name}
                       </CardTitle>
-                      <CardDescription>
-                        Dashboard ID: {selectedDashboard.id} | Account: {selectedDashboard.accountId}
+                      <CardDescription className="text-sm">
+                        Dashboard ID: {selectedDashboard.id} • Account: {selectedDashboard.accountId}
                         {isLoadingValidation && " • Fetching UTM configurations..."}
                       </CardDescription>
                     </div>
@@ -411,18 +408,18 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                         onClick={resetToAccountInput}
                         variant="outline"
                         size="sm"
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 sm:shrink-0"
                         disabled={isLoadingValidation}
                     >
                       <ArrowLeft className="h-4 w-4" />
-                      Change Dashboard
+                      Change
                     </Button>
                   </div>
                 </CardHeader>
               </Card>
           )}
           {error && (
-              <Alert variant="destructive" className="max-w-4xl mx-auto">
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -433,55 +430,58 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
               <div className="space-y-6">
                 <ValidationSummary data={validationData.data} />
 
-                <Tabs defaultValue="overview" className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <TabsList className="grid w-full grid-cols-3">
+                <Tabs defaultValue="overview">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6">
+                    <TabsList className="grid w-full max-w-md grid-cols-3">
                       <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="utmparameters">Correct Utms</TabsTrigger>
+                      <TabsTrigger value="utmparameters">Correct UTMs</TabsTrigger>
                       <TabsTrigger value="platforms">By Platform</TabsTrigger>
                     </TabsList>
-                    <div className="relative ml-4">
+                    <div className="flex flex-col sm:flex-row gap-3 lg:ml-auto w-full lg:w-auto">
+                    <div className="relative flex-1 sm:flex-none sm:w-64">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                           placeholder="Search by name or ID..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-9 w-64"
+                          className="pl-9"
                       />
                     </div>
-                    <div className="flex items-center space-x-4 ml-4">
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="disabled-toggle" className="whitespace-nowrap">Show disabled</Label>
-                        <Switch
-                            id="disabled-toggle"
-                            checked={showDisabled}
-                            onCheckedChange={setShowDisabled}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="non-spend-toggle" className="whitespace-nowrap">Show non-spend</Label>
-                        <Switch
-                            id="non-spend-toggle"
-                            checked={showNonSpend}
-                            onCheckedChange={setShowNonSpend}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="no-utms-toggle" className="whitespace-nowrap">Sem UTM</Label>
-                        <Switch
-                            id="no-utms-toggle"
-                            checked={showNoUtmsOnly}
-                            onCheckedChange={setShowNoUtmsOnly}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="valid-ads-toggle" className="whitespace-nowrap">Mostrar válidos</Label>
-                        <Switch
-                            id="valid-ads-toggle"
-                            checked={showValidsAds}
-                            onCheckedChange={setShowValidsAds}
-                        />
-                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-4 mb-4 p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                          id="disabled-toggle"
+                          checked={showDisabled}
+                          onCheckedChange={setShowDisabled}
+                      />
+                      <Label htmlFor="disabled-toggle" className="text-sm cursor-pointer">Show disabled</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                          id="non-spend-toggle"
+                          checked={showNonSpend}
+                          onCheckedChange={setShowNonSpend}
+                      />
+                      <Label htmlFor="non-spend-toggle" className="text-sm cursor-pointer">Show non-spend</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                          id="no-utms-toggle"
+                          checked={showNoUtmsOnly}
+                          onCheckedChange={setShowNoUtmsOnly}
+                      />
+                      <Label htmlFor="no-utms-toggle" className="text-sm cursor-pointer">Sem UTM</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                          id="valid-ads-toggle"
+                          checked={showValidsAds}
+                          onCheckedChange={setShowValidsAds}
+                      />
+                      <Label htmlFor="valid-ads-toggle" className="text-sm cursor-pointer">Mostrar válidos</Label>
                     </div>
                   </div>
 
@@ -527,60 +527,66 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
 
           {/* Bulk Validation Results Section */}
           {isBulkValidation && (
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Bulk Validation Report</CardTitle>
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search by name or ID..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 w-64"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="bulk-disabled-toggle" className="whitespace-nowrap">Show disabled</Label>
-                        <Switch
-                            id="bulk-disabled-toggle"
-                            checked={showDisabled}
-                            onCheckedChange={setShowDisabled}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="bulk-non-spend-toggle" className="whitespace-nowrap">Show non-spend</Label>
-                        <Switch
-                            id="bulk-non-spend-toggle"
-                            checked={showNonSpend}
-                            onCheckedChange={setShowNonSpend}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="bulk-valid-ads-toggle" className="whitespace-nowrap">Mostrar válidos</Label>
-                        <Switch
-                            id="bulk-valid-ads-toggle"
-                            checked={showValidsAds}
-                            onCheckedChange={setShowValidsAds}
-                        />
-                      </div>
-                      <Button
-                          onClick={resetToAccountInput}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-2"
-                          disabled={isLoadingValidation}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                      </Button>
-                    </div>
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Bulk Validation Report</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Validation results for all {dashboards.length} dashboards
+                    </p>
                   </div>
-                  <CardDescription>
-                    Showing validation results for all {dashboards.length} dashboards.
-                  </CardDescription>
-                </CardHeader>
+                  <Button
+                      onClick={resetToAccountInput}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2 sm:shrink-0"
+                      disabled={isLoadingValidation}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1 sm:max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by name or ID..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                        id="bulk-disabled-toggle"
+                        checked={showDisabled}
+                        onCheckedChange={setShowDisabled}
+                    />
+                    <Label htmlFor="bulk-disabled-toggle" className="text-sm cursor-pointer">Show disabled</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                        id="bulk-non-spend-toggle"
+                        checked={showNonSpend}
+                        onCheckedChange={setShowNonSpend}
+                    />
+                    <Label htmlFor="bulk-non-spend-toggle" className="text-sm cursor-pointer">Show non-spend</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                        id="bulk-valid-ads-toggle"
+                        checked={showValidsAds}
+                        onCheckedChange={setShowValidsAds}
+                    />
+                    <Label htmlFor="bulk-valid-ads-toggle" className="text-sm cursor-pointer">Mostrar válidos</Label>
+                  </div>
+                </div>
+                
+                <Card>
                 <CardContent>
                   {isLoadingValidation && (
                       <div className="flex items-center justify-center p-10">
@@ -673,7 +679,9 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                   )}
                 </CardContent>
               </Card>
+              </div>
           )}
+          </div>
         </div>
       </div>
   );
