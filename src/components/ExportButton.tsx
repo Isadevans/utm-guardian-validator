@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download } from "lucide-react";
 import * as XLSX from 'xlsx';
-import { AdsConfigItem, AdsConfigsResult } from "@/types/AdsConfigItem.ts";
+import {AdsConfigItem, AdsConfigsResult} from "@/types/AdsConfigItem.ts";
 
 interface ExportButtonProps {
     data: AdsConfigsResult;
@@ -23,29 +23,30 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
         const processAds = (ads: AdsConfigItem[], platformName: string) => {
             if (!ads || ads.length === 0) return;
 
-            ads.forEach(ad => {
-                const effectiveTrackParams = ad.ad?.trackParams || ad.medium?.trackParams || ad.campaign?.trackParams || ad.account?.trackParams || ad.trackParams || "N/A";
+            ads.forEach(item => {
+                const effectiveTrackParams = item.ad?.trackParams || item.medium?.trackParams || item.campaign?.trackParams || item.account?.trackParams || item.trackParams || "N/A";
+                const isValid = !item.messages || item.messages.length === 0;
                 exportRows.push({
                     'Plataforma': platformName,
-                    'Nome da Campanha': ad.campaign.name,
-                    'ID da Campanha': ad.campaign.id,
-                    'Nome do Conjunto de Anúncios': ad.medium.name,
-                    'ID do Conjunto de Anúncios': ad.medium.id,
-                    'Nome do Anúncio': ad.ad.name,
-                    'ID do Anúncio': ad.ad.id,
-                    'URL de Destino': ad.link,
+                    'Nome da Campanha': item.campaign.name,
+                    'ID da Campanha': item.campaign.id,
+                    'Nome do Conjunto de Anúncios': item.medium.name,
+                    'ID do Conjunto de Anúncios': item.medium.id,
+                    'Nome do Anúncio': item.ad.name,
+                    'ID do Anúncio': item.ad.id,
+                    'URL de Destino': item.link,
                     'Parâmetros de UTM': effectiveTrackParams,
-                    'Status': ad.isTrackParamsValid ? 'Válido' : 'Inválido',
-                    'Gasto': ad.spend,
-                    'Ativo': ad.isActive ? 'Sim' : 'Não',
+                    'Status': isValid ? 'Válido' : 'Inválido',
+                    'Gasto': item.spend,
+                    'Ativo': item.isActive ? 'Sim' : 'Não',
                 });
             });
         };
 
-        processAds(data.facebook, 'Facebook');
-        processAds(data.google, 'Google');
-        processAds(data.tiktok, 'TikTok');
-        processAds(data.pinterest, 'Pinterest');
+        processAds(data.facebook?.configs, 'Facebook');
+        processAds(data.google?.configs, 'Google');
+        processAds(data.tiktok?.configs, 'TikTok');
+        processAds(data.pinterest?.configs, 'Pinterest');
 
         return exportRows;
     };
