@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from "react";
-import {AlertCircle, ArrowLeft, CheckCircle, Loader2, Search, LogOut} from "lucide-react";
+import {AlertCircle, ArrowLeft, CheckCircle, Loader2, Search, LogOut, Copy} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {AdsConfigItem, AdsConfigsResult, ValidationSummaryProps} from "@/types/A
 import {UtmTemplates} from "@/components/utmTemplates.tsx";
 import {ModeToggle} from "@/components/mode-toggle.tsx";
 import {Separator} from "@/components/ui/separator";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 
 
 // --- Data processing logic moved from ValidationResults ---
@@ -385,12 +386,46 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
     const filteredCampaigns = useFilteredCampaigns(result.data, showDisabled, showNonSpend, showNoUtmsOnly, showValidsAds, searchQuery);
     const errorCount = getTotalErrorCount(result.data);
 
+    const handleCopyDashboardName = async (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent accordion toggle
+      try {
+        await navigator.clipboard.writeText(result.dashboardName);
+        toast({
+          title: "Copiado!",
+          description: "Nome do dashboard copiado para a área de transferência",
+        });
+      } catch (err) {
+        toast({
+          title: "Erro ao copiar",
+          description: "Não foi possível copiar o nome do dashboard",
+          variant: "destructive",
+        });
+      }
+    };
+
     return (
         <AccordionItem value={result.dashboardId.toString()} className="border rounded-lg">
           <AccordionTrigger className="px-4 hover:no-underline">
             <div className="flex items-center gap-4">
               {errorCount === 0 ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertCircle className="h-5 w-5 text-red-500" />}
               <span className="font-semibold">{result.dashboardName}</span>
+              <TooltipProvider>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity"
+                      onClick={handleCopyDashboardName}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Copiar nome do dashboard</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Badge variant={errorCount === 0 ? "default" : "destructive"}>{errorCount} {errorCount === 1 ? 'error' : 'errors'}</Badge>
             </div>
           </AccordionTrigger>
