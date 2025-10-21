@@ -2,9 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye, Search } from "lucide-react";
+import { AlertCircle, CheckCircle, XCircle, ExternalLink, Info, AlertTriangle, ChevronRight, ChevronDown, Link as LinkIcon, Eye, Search, Copy } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PlatformBadge } from "@/components/ui/platform-badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -103,6 +105,8 @@ const getEffectiveParamsInfo = (ad: AdItem) => {
 };
 
 const AdCard = ({ ad }: { ad: AdItem }) => {
+  const { toast } = useToast();
+  
   const getRecommendationInfo = () => ({
     title: 'Recommendation',
     description: 'For better consistency and management, it is recommended to set UTM parameters at the account level using a tracking template instead of at the ad, ad set, or campaign level.',
@@ -110,8 +114,111 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
     color: 'bg-accent/10 border-accent text-accent-foreground'
   });
 
+  const handleCopyAdName = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(ad.adName);
+      toast({
+        title: "Copiado!",
+        description: "Nome do anúncio copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o nome do anúncio",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyAdId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(ad.adId);
+      toast({
+        title: "Copiado!",
+        description: "ID do anúncio copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o ID do anúncio",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyAdsetId = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(ad.adsetId || '');
+      toast({
+        title: "Copiado!",
+        description: "ID do Ad Set copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o ID do Ad Set",
+        variant: "destructive",
+      });
+    }
+  };
+
   const effectiveInfo = getEffectiveParamsInfo(ad);
   const recommendationInfo = getRecommendationInfo();
+
+  const handleCopyUtmParams = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(effectiveInfo.effectiveParams || '');
+      toast({
+        title: "Copiado!",
+        description: "UTM Parameters copiados para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar os UTM Parameters",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyDestinationUrl = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(ad.link || '');
+      toast({
+        title: "Copiado!",
+        description: "Destination URL copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o Destination URL",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyPreviewLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(ad.preview_link || '');
+      toast({
+        title: "Copiado!",
+        description: "Ad Preview URL copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o Ad Preview URL",
+        variant: "destructive",
+      });
+    }
+  };
+
   const isError = !ad.isValid && ad.spend > 0;
   const isWarning = !ad.isValid && (ad.spend === 0 || ad.spend == null);
   const borderColor = ad.isValid ? "border-l-green-500" : isError ? "border-l-destructive" : "border-l-yellow-500";
@@ -123,13 +230,69 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-start">
               <div>
-                <h4 className="font-semibold">{ad.adName}
-                  {!ad.isActive && <Badge variant="outline" className="ml-2 bg-muted text-muted-foreground">Disabled</Badge>}
-                  {(ad.spend === 0 || ad.spend == null) && ad.isActive && <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">No Spend</Badge>}
-                </h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold">{ad.adName}</h4>
+                  <Tooltip delayDuration={200}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 opacity-60 hover:opacity-100 transition-opacity"
+                        onClick={handleCopyAdName}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copiar nome do anúncio</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  {!ad.isActive && <Badge variant="outline" className="bg-muted text-muted-foreground">Disabled</Badge>}
+                  {(ad.spend === 0 || ad.spend == null) && ad.isActive && <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">No Spend</Badge>}
+                </div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                  <span>Ad ID:</span><Badge variant="outline" className="text-xs font-mono bg-muted/50">{ad.adId}</Badge>
-                  {ad.adsetId && <><span>•</span><span>Ad Set ID:</span><Badge variant="outline" className="text-xs font-mono bg-muted/50">{ad.adsetId}</Badge></>}
+                  <span>Ad ID:</span>
+                  <Badge variant="outline" className="text-xs font-mono bg-muted/50">
+                    {ad.adId}
+                  </Badge>
+                  <Tooltip delayDuration={200}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 opacity-60 hover:opacity-100 transition-opacity"
+                        onClick={handleCopyAdId}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copiar ID do anúncio</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  {ad.adsetId && (
+                    <>
+                      <span>•</span><span>Ad Set ID:</span>
+                      <Badge variant="outline" className="text-xs font-mono bg-muted/50">
+                        {ad.adsetId}
+                      </Badge>
+                      <Tooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={handleCopyAdsetId}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Copiar ID do Ad Set</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
+                  )}
                   <span>•</span><span className="font-medium">Spend:</span><span className="font-mono text-foreground">{ad.spend != null  ? `R$${ad.spend?.toFixed(2)}`: "No known spend"}</span>
                 </div>
               </div>
@@ -144,10 +307,50 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
             <div className="space-y-2">
               <div className="text-xs space-y-1">
                 <div className="flex items-center gap-1"><ExternalLink className="h-3 w-3" /><span className="font-medium">Ad Preview:</span></div>
-                {ad.preview_link ? (<div className="mt-1 p-2 bg-muted/50 rounded overflow-hidden"><a href={ad.preview_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">{ad.preview_link}</a></div>) : (<div className="mt-1 p-2 bg-muted/50 rounded text-muted-foreground italic text-xs">No ad preview available for this ad</div>)}
+                {ad.preview_link ? (
+                  <div className="mt-1 p-2 bg-muted/50 rounded overflow-hidden flex items-center justify-between gap-2">
+                    <a href={ad.preview_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex-1 break-all">{ad.preview_link}</a>
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+                          onClick={handleCopyPreviewLink}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Copiar Ad Preview URL</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                ) : (
+                  <div className="mt-1 p-2 bg-muted/50 rounded text-muted-foreground italic text-xs">No ad preview available for this ad</div>
+                )}
                 <div className="text-xs space-y-1">
                   <div className="flex items-center gap-1"><LinkIcon className="h-3 w-3" /><span className="font-medium">Destination URL:</span></div>
-                  <pre className="mt-1 p-2 bg-muted/50 rounded text-xs break-all whitespace-pre-wrap">{ad.link || "No URL provided"}</pre>
+                  <div className="mt-1 p-2 bg-muted/50 rounded flex items-start justify-between gap-2">
+                    <pre className="text-xs break-all whitespace-pre-wrap flex-1">{ad.link || "No URL provided"}</pre>
+                    {ad.link && (
+                      <Tooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                            onClick={handleCopyDestinationUrl}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Copiar Destination URL</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="text-xs space-y-3">
@@ -180,7 +383,26 @@ const AdCard = ({ ad }: { ad: AdItem }) => {
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <pre className={`p-3 rounded-b-md text-xs break-all whitespace-pre-wrap ${!ad.isValid ? 'bg-destructive/10 border border-destructive' : 'bg-green-500/10 border border-green-500'}`}>{effectiveInfo.effectiveParams || "No UTM parameters found"}</pre>
+                  <div className={`p-3 rounded-b-md ${!ad.isValid ? 'bg-destructive/10 border border-destructive' : 'bg-green-500/10 border border-green-500'} flex items-start justify-between gap-2`}>
+                    <pre className="text-xs break-all whitespace-pre-wrap flex-1">{effectiveInfo.effectiveParams || "No UTM parameters found"}</pre>
+                    {effectiveInfo.effectiveParams && (
+                      <Tooltip delayDuration={200}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                            onClick={handleCopyUtmParams}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Copiar UTM Parameters</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
               </div>
               {ad.isValid && effectiveInfo.effectiveLevel !== 'Account Level' && effectiveInfo.effectiveParams && (
@@ -204,8 +426,43 @@ interface CampaignGroupCardProps {
 
 const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
   const validAdsInGroup = campaignGroup.ads.filter(ad => ad.isValid).length;
   const allAdsInOriginalGroupDisabled = campaignGroup.ads.every(ad => !ad.isActive);
+
+  const handleCopyCampaignName = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent accordion toggle
+    try {
+      await navigator.clipboard.writeText(campaignGroup.campaignName);
+      toast({
+        title: "Copiado!",
+        description: "Nome da campanha copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o nome da campanha",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyCampaignId = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent accordion toggle
+    try {
+      await navigator.clipboard.writeText(campaignGroup.campaignId);
+      toast({
+        title: "Copiado!",
+        description: "ID da campanha copiado para a área de transferência",
+      });
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o ID da campanha",
+        variant: "destructive",
+      });
+    }
+  };
 
   const sortedAds = [...campaignGroup.ads].sort((a, b) => {
     const aIsError = !a.isValid && a.spend > 0;
@@ -230,13 +487,51 @@ const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
                 <div className="flex items-center">
                   {isOpen ? <ChevronDown className="h-5 w-5 mr-2" /> : <ChevronRight className="h-5 w-5 mr-2" />}
                   <div>
-                    <CardTitle className="text-md font-medium flex items-center">{campaignGroup.campaignName}
+                    <CardTitle className="text-md font-medium flex items-center">
+                      <span>{campaignGroup.campaignName}</span>
+                      <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 ml-1 opacity-60 hover:opacity-100 transition-opacity"
+                              onClick={handleCopyCampaignName}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copiar nome da campanha</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <PlatformBadge platform={campaignGroup.platform} className="ml-2 px-2 py-0.5" iconClassName="w-4 h-4" />
                       {allAdsInOriginalGroupDisabled && (<Badge variant="outline" className="ml-2 bg-muted text-muted-foreground">Disabled</Badge>)}
                     </CardTitle>
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <span>{campaignGroup.platform}</span><span>•</span><span className="font-medium">Campaign ID:</span>
-                      <Badge variant="outline" className="text-xs font-mono bg-muted/50">{campaignGroup.campaignId}</Badge><span>•</span>
+                      <Badge variant="outline" className="text-xs font-mono bg-muted/50">
+                        {campaignGroup.campaignId}
+                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 opacity-60 hover:opacity-100 transition-opacity"
+                              onClick={handleCopyCampaignId}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copiar ID da campanha</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <span>•</span>
                       <span>{campaignGroup.adCount} ads</span><span>•</span><span className="font-medium">Spend:</span>
                       <span className="font-mono text-foreground">${campaignGroup.totalSpend?.toFixed(2) || 0}</span>
                     </div>
