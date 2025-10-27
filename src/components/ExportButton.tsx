@@ -39,6 +39,7 @@ export const ExportButton = ({ data, dashboardName }: ExportButtonProps) => {
                     'Status': isValid ? 'Válido' : 'Inválido',
                     'Gasto': item.spend,
                     'Ativo': item.isActive ? 'Sim' : 'Não',
+                    'Preview': item.preview_link
                 });
             });
         };
