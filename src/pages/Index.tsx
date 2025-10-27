@@ -10,6 +10,7 @@ import {UtmDebugger} from "@/components/UtmDebugger";
 import {ValidationSummary} from "@/components/ValidationSummary";
 import {Label} from "@/components/ui/label.tsx";
 import {Switch} from "@/components/ui/switch.tsx";
+import {Checkbox} from "@/components/ui/checkbox.tsx";
 import {Dashboard, DashboardSelector} from "@/components/DashboardSelector";
 import {useToast} from "@/hooks/use-toast";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
@@ -519,11 +520,59 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                         {validationData.data && <ExportButton data={getFilteredDataForExport(validationData.data, displayedCampaigns)} />}
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-4 mb-4 p-4 bg-muted/30 rounded-lg border">
-                      <div className="flex items-center gap-2"><Switch id="disabled-toggle" checked={showDisabled} onCheckedChange={setShowDisabled} /><Label htmlFor="disabled-toggle" className="text-sm cursor-pointer">Show disabled</Label></div>
-                      <div className="flex items-center gap-2"><Switch id="non-spend-toggle" checked={showNonSpend} onCheckedChange={setShowNonSpend} /><Label htmlFor="non-spend-toggle" className="text-sm cursor-pointer">Show non-spend</Label></div>
-                      <div className="flex items-center gap-2"><Switch id="no-utms-toggle" checked={showNoUtmsOnly} onCheckedChange={setShowNoUtmsOnly} /><Label htmlFor="no-utms-toggle" className="text-sm cursor-pointer">Sem UTM</Label></div>
-                      <div className="flex items-center gap-2"><Switch id="valid-ads-toggle" checked={showValidsAds} onCheckedChange={setShowValidsAds} /><Label htmlFor="valid-ads-toggle" className="text-sm cursor-pointer">Mostrar válidos</Label></div>
+                    <div className="flex flex-wrap gap-6 mb-4 p-4 bg-muted/30 rounded-lg border">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="disabled-toggle" 
+                          checked={showDisabled} 
+                          onCheckedChange={(checked) => setShowDisabled(checked === true)} 
+                        />
+                        <Label 
+                          htmlFor="disabled-toggle" 
+                          className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Show disabled
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="non-spend-toggle" 
+                          checked={showNonSpend} 
+                          onCheckedChange={(checked) => setShowNonSpend(checked === true)} 
+                        />
+                        <Label 
+                          htmlFor="non-spend-toggle" 
+                          className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Show non-spend
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="no-utms-toggle" 
+                          checked={showNoUtmsOnly} 
+                          onCheckedChange={(checked) => setShowNoUtmsOnly(checked === true)} 
+                        />
+                        <Label 
+                          htmlFor="no-utms-toggle" 
+                          className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Sem UTM
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="valid-ads-toggle" 
+                          checked={showValidsAds} 
+                          onCheckedChange={(checked) => setShowValidsAds(checked === true)} 
+                        />
+                        <Label 
+                          htmlFor="valid-ads-toggle" 
+                          className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Mostrar válidos
+                        </Label>
+                      </div>
                     </div>
                     <TabsContent value="overview" className="space-y-4">
                       <ValidationResults campaignGroups={displayedCampaigns} />
@@ -550,10 +599,46 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search by name or ID..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg border">
-                    <div className="flex items-center gap-2"><Switch id="bulk-disabled-toggle" checked={showDisabled} onCheckedChange={setShowDisabled} /><Label htmlFor="bulk-disabled-toggle" className="text-sm cursor-pointer">Show disabled</Label></div>
-                    <div className="flex items-center gap-2"><Switch id="bulk-non-spend-toggle" checked={showNonSpend} onCheckedChange={setShowNonSpend} /><Label htmlFor="bulk-non-spend-toggle" className="text-sm cursor-pointer">Show non-spend</Label></div>
-                    <div className="flex items-center gap-2"><Switch id="bulk-valid-ads-toggle" checked={showValidsAds} onCheckedChange={setShowValidsAds} /><Label htmlFor="bulk-valid-ads-toggle" className="text-sm cursor-pointer">Mostrar válidos</Label></div>
+                  <div className="flex flex-wrap gap-6 p-4 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="bulk-disabled-toggle" 
+                        checked={showDisabled} 
+                        onCheckedChange={(checked) => setShowDisabled(checked === true)} 
+                      />
+                      <Label 
+                        htmlFor="bulk-disabled-toggle" 
+                        className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Show disabled
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="bulk-non-spend-toggle" 
+                        checked={showNonSpend} 
+                        onCheckedChange={(checked) => setShowNonSpend(checked === true)} 
+                      />
+                      <Label 
+                        htmlFor="bulk-non-spend-toggle" 
+                        className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Show non-spend
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="bulk-valid-ads-toggle" 
+                        checked={showValidsAds} 
+                        onCheckedChange={(checked) => setShowValidsAds(checked === true)} 
+                      />
+                      <Label 
+                        htmlFor="bulk-valid-ads-toggle" 
+                        className="text-sm cursor-pointer font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Mostrar válidos
+                      </Label>
+                    </div>
                   </div>
                   <Card><CardContent>
                     {isLoadingValidation && (<div className="flex items-center justify-center p-10"><Loader2 className="mr-2 h-8 w-8 animate-spin" /><p className="text-lg">Validating dashboards...</p></div>)}
