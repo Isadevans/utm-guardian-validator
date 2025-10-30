@@ -558,7 +558,6 @@ const CampaignGroupCard = ({ campaignGroup }: CampaignGroupCardProps) => {
 };
 
 export const ValidationResults = ({ campaignGroups, groupByPlatform }: ValidationResultsProps) => {
-
   const totalAds = campaignGroups.reduce((sum, group) => sum + group.ads.length, 0);
 
   if (totalAds === 0) {
@@ -590,12 +589,12 @@ export const ValidationResults = ({ campaignGroups, groupByPlatform }: Validatio
 
     return (
         <Tabs defaultValue="summary">
-          <TabsList className="mb-4">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            {platformData.filter(p => p.totalAds > 0).map(platform => (
-                <TabsTrigger key={platform.name} value={platform.name.toLowerCase()}>{platform.name}</TabsTrigger>
-            ))}
-          </TabsList>
+            <TabsList className="mb-4">
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              {platformData.filter(p => p.totalAds > 0).map(platform => (
+                  <TabsTrigger key={platform.name} value={platform.name.toLowerCase()}>{platform.name}</TabsTrigger>
+              ))}
+            </TabsList>
           <TabsContent value="summary">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {platformData.map((platform) => (
