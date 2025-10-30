@@ -16,6 +16,7 @@ import {useToast} from "@/hooks/use-toast";
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
 import {Badge} from "@/components/ui/badge";
 import {ExportButton} from "@/components/ExportButton";
+import {CopyAllCampaignsButton} from "@/components/CopyAllCampaignsButton";
 import {AdsConfigItem, AdsConfigsResult, ValidationSummaryProps} from "@/types/AdsConfigItem.ts";
 import {UtmTemplates} from "@/components/utmTemplates.tsx";
 import {ModeToggle} from "@/components/mode-toggle.tsx";
@@ -431,7 +432,8 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
             </div>
           </AccordionTrigger>
           <AccordionContent className="p-4 border-t">
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end gap-2 mb-4">
+              <CopyAllCampaignsButton campaignGroups={filteredCampaigns} />
               <ExportButton data={getFilteredDataForExport(result.data, filteredCampaigns)} dashboardName={result.dashboardName} />
             </div>
             <ValidationResults campaignGroups={filteredCampaigns} />
@@ -572,6 +574,9 @@ const Index = ({ onLogout ,token,accountId:accountid}: IndexProps) => {
                         >
                           Mostrar válidos
                         </Label>
+                      </div>
+                      <div className="ml-auto">
+                        <CopyAllCampaignsButton campaignGroups={displayedCampaigns} />
                       </div>
                     </div>
                     <TabsContent value="overview" className="space-y-4">
